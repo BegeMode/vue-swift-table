@@ -22,6 +22,17 @@ const limit = ref(10);
 const footerHeight = ref(50);
 const externalPaging = ref(false);
 
+import type { SelectionType } from './types/selection.type';
+
+// Selection State
+const selectionType = ref<SelectionType>('single');
+const selected = ref([]);
+
+const onSelect = (event: any) => {
+  console.log('Select Event:', event);
+  selected.value = event.selected;
+};
+
 const onPage = (event: any) => {
   console.log('Page Event:', event);
 };
@@ -66,6 +77,17 @@ const onScroll = (e: Event) => {
          <label>Page Size: <input type="number" v-model="limit" /></label>
          <label>Footer Height: <input type="number" v-model="footerHeight" /></label>
          <label><input type="checkbox" v-model="externalPaging" /> Server-side Paging</label>
+         <label>
+            Selection: 
+            <select v-model="selectionType">
+                <option value="">None</option>
+                <option value="single">Single</option>
+                <option value="multi">Multi (Ctrl/Cmd)</option>
+                <option value="multiClick">Multi Click</option>
+                <option value="checkbox">Checkbox</option>
+            </select>
+         </label>
+         <span>Selected: {{ selected.length }}</span>
       </div>
       <p>Rows: {{ rows.length }} | Virtualization: ON</p>
     </div>
@@ -84,6 +106,9 @@ const onScroll = (e: Event) => {
         :pageSize="limit"
         :footerHeight="footerHeight"
         :externalPaging="externalPaging"
+        :selectionType="selectionType"
+        :selected="selected"
+        @select="onSelect"
       />
     </div>
   </div>

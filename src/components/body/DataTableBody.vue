@@ -10,14 +10,18 @@ interface Props {
   columns: Array<TableColumn>;
   rowHeight: number;
   bodyHeight?: number | string; // explicit height if needed, or flex
+  selected?: Array<any>;
+  selectionType?: string;
+  rowIdentity?: (row: any) => any;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   rows: () => [],
-  rowHeight: 50
+  rowHeight: 50,
+  selected: () => []
 });
 
-const emit = defineEmits(['scroll', 'update:scrollTop']);
+const emit = defineEmits(['scroll', 'update:scrollTop', 'row-select', 'activate']);
 
 // State
 const scrollTop = ref(0);
@@ -110,6 +114,10 @@ const contentStyle = computed<CSSProperties>(() => ({
          :rowIndex="item.rowIndex"
          :columns="columns"
          :rowHeight="rowHeight"
+         :isSelected="selected?.includes(item.row)"
+         :selectionType="selectionType"
+         @select="emit('row-select', { row: item.row, event: $event })"
+         @activate="emit('activate', { row: item.row, event: $event })"
        />
     </div>
   </div>

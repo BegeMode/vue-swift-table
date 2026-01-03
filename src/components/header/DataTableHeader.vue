@@ -8,10 +8,12 @@ interface Props {
   headerHeight: number;
   sortType?: SortType | string;
   sorts?: Array<any>;
+  selectionType?: string;
+  allRowsSelected?: boolean;
 }
 
 const props = defineProps<Props>();
-const emit = defineEmits(['sort']);
+const emit = defineEmits(['sort', 'select-all']);
 
 const style = computed(() => ({
   height: `${props.headerHeight}px`,
@@ -28,6 +30,19 @@ const onColumnClick = (column: TableColumn) => {
 <template>
   <div class="datatable-header" :style="style">
     <div class="datatable-header-inner">
+      <div 
+        v-if="selectionType === 'checkbox'" 
+        class="datatable-header-cell datatable-checkbox-cell"
+        :style="{ width: '30px' }"
+      >
+        <label>
+          <input 
+            type="checkbox" 
+            :checked="allRowsSelected" 
+            @change="emit('select-all')" 
+          />
+        </label>
+      </div>
       <div 
         v-for="col in columns" 
         :key="col.$$id || col.prop"

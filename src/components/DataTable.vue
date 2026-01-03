@@ -137,6 +137,70 @@ const onPage = (event: { offset: number; limit: number; count: number }) => {
   emit('page', event);
 };
 
+// ------------------------------------------------------------------
+// Selection Logic
+// ------------------------------------------------------------------
+const selectedState = ref<any[]>(props.selected || []);
+
+// Watch props selected to keep in sync if controlled externally
+watch(() => props.selected, (val) => {
+  selectedState.value = val || [];
+});
+
+const onRowSelect = ({ row, type, event }: { row: any; type?: string; event?: MouseEvent }) => {
+  if (!props.selectionType) return;
+
+  const select = (r: any) => {
+    selectedState.value = [r];
+    emit('select', { selected: selectedState.value });
+    emit('update:selected', selectedState.value);
+  };
+
+  const toggle = (r: any) => {
+    // Find index of row in selected
+    const idx = selectedState.value.indexOf(r);
+    // Note: If using rowIdentity, we should use that to find the index.
+    // For now, assuming object reference equality or simple identity.
+    
+    if (idx > -1) {
+      selectedState.value.splice(idx, 1);
+    } else {
+      selectedState.value.push(r);
+    }
+    emit('select', { selected: selectedState.value });
+    emit('update:selected', selectedState.value);
+  };
+
+  if (props.selectionType === 'single') {
+    select(row);
+  } else if (props.selectionType === 'multi') {
+    if (event?.ctrlKey || event?.metaKey) {
+      toggle(row);
+    } else {
+      select(row);
+    }
+  } else if (props.selectionType === 'multiClick') {
+    toggle(row);
+  } else if (props.selectionType === 'checkbox') {
+    toggle(row);
+  }
+  
+  emit('activate', { type: 'click', row, event });
+};
+
+const onSelectAll = () => {
+    // Basic implementation: Toggle all visible or all rows
+    // For now, let's select all rows if not all selected, otherwise clear.
+    const allSelected = selectedState.value.length === (props.count || props.rows.length);
+    if (allSelected) {
+        selectedState.value = [];
+    } else {
+        selectedState.value = [...props.rows];
+    }
+    emit('select', { selected: selectedState.value });
+    emit('update:selected', selectedState.value);
+};
+
 // Computed classes for the root element
 const componentClasses = computed(() => ({
   'ngx-datatable': true,
@@ -159,6 +223,13 @@ provide('dataTable', {
   emit
 });
 
+// Provide Selection Context to Children
+provide('selection', {
+  selected: selectedState,
+  selectionType: toRefs(props).selectionType,
+  onRowSelect
+});
+
 const onScroll = (e: Event) => {
   emit('scroll', e);
 };
@@ -171,9 +242,11 @@ const onScroll = (e: Event) => {
       <DataTableHeader
         :columns="columns"
         :headerHeight="headerHeight"
-        :sortType="sortType"
         :sorts="sorts"
+        :selectionType="selectionType"
+        :allRowsSelected="selectedState.length === (props.count || props.rows.length) && props.rows.length > 0"
         @sort="emit('sort', $event)"
+        @select-all="onSelectAll"
       />
 
       <!-- Body Component -->
@@ -182,7 +255,10 @@ const onScroll = (e: Event) => {
         :columns="columns"
         :rowHeight="Number(rowHeight)" 
         :bodyHeight="height"
+        :selected="selectedState"
+        :selectionType="selectionType"
         @scroll="onScroll"
+        @row-select="onRowSelect"
       />
 
       <!-- Footer Component will go here -->
