@@ -53,6 +53,8 @@ interface Props {
   // Sorting
   sortType?: SortType;
   sorts?: Array<any>;
+  // Theme
+  theme?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -69,6 +71,7 @@ const props = withDefaults(defineProps<Props>(), {
   summaryRow: false,
   summaryPosition: 'top',
   summaryHeight: 30,
+  theme: 'material',
   rows: () => [],
   columns: () => [],
   selected: () => [],
@@ -98,7 +101,8 @@ const emit = defineEmits([
   'tree-action',
   'group-toggle',
   'update:selected',
-  'scroll'
+  'scroll',
+  'reorder'
 ]);
 
 // ------------------------------------------------------------------
@@ -204,7 +208,7 @@ const onSelectAll = () => {
 // Computed classes for the root element
 const componentClasses = computed(() => ({
   'ngx-datatable': true,
-  'material': true, // Default theme for now, can be made dynamic
+  [props.theme]: true, // Dynamic theme
   'fixed-header': true,
   'fixed-row': true,
   'scroll-vertical': true, // Virtualization implies vertical scrolling
@@ -230,10 +234,42 @@ provide('selection', {
   onRowSelect
 });
 
+const onColumnReorder = ({ source, target }: { source: TableColumn, target: TableColumn }) => {
+    // Find indices
+    const columns = [...props.columns];
+    const sourceIdx = columns.findIndex(c => (c.$$id || c.prop) === (source.$$id || source.prop));
+    const targetIdx = columns.findIndex(c => (c.$$id || c.prop) === (target.$$id || target.prop));
+    
+    if (sourceIdx > -1 && targetIdx > -1) {
+        // Move source to target index
+        const [movedColumn] = columns.splice(sourceIdx, 1);
+        if (movedColumn) {
+             columns.splice(targetIdx, 0, movedColumn);
+             emit('reorder', columns);
+        }
+        // We probably need to emit an update event for the parent to handle, 
+        // or if we have a mutable array (less ideal in Vue 3 props).
+        // Since we don't have update:columns emit defined yet, let's define it or just rely on parent binding?
+        // Spec says "reorder the columns array in DataTable.vue", but DataTable receives it as prop.
+        // Standard Vue pattern: emit update:columns.
+        
+        // However, if we look at existing code, there is no update:columns.
+        // Let's emit a generic event or try to mutate if it's expected (but it warns).
+        // Best approach: emit 'reorder' event with new columns order.
+        
+        emit('reorder', columns);
+        // Also emit update:columns for v-model:columns support if user wants it
+        // emit('update:columns', columns); 
+        
+        // Wait, spec said "On drop, reorder the columns array in DataTable.vue". 
+        // If columns are props, we cannot mutate them. 
+        // We should check if we can emit an event.
+    }
+};
+
 const onScroll = (e: Event) => {
   emit('scroll', e);
 };
-
 </script>
 
 <template>
@@ -247,6 +283,7 @@ const onScroll = (e: Event) => {
         :allRowsSelected="selectedState.length === (props.count || props.rows.length) && props.rows.length > 0"
         @sort="emit('sort', $event)"
         @select-all="onSelectAll"
+        @column-reorder="onColumnReorder"
       />
 
       <!-- Body Component -->

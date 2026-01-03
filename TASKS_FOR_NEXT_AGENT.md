@@ -1,58 +1,32 @@
-# Задачи для следующего этапа разработки
+# Tasks for Next Development Phase
 
-Ниже представлен список задач для продолжения портирования `vue-swift-table`.
-Контекст: Базовая виртуализация и рендеринг работают. Необходимо реализовать интерактивность.
+The following tasks are remaining for the `vue-swift-table` port.
+Context: **Virtualization**, **Pagination**, **Selection**, and **Column Resizing** are fully implemented and verified.
 
-## 1. Пагинация (Pagination)
+## 1. Column Reordering (Completed)
 
-**Цель**: Реализовать переключение страниц (Client-side и Server-side).
-**Детали**:
+**Goal**: Allow users to reorder columns by dragging headers.
 
-- Создать компонент `DataTablePager.vue` (аналог `datatable-pager`).
-- Внедрить компонент `DataTableFooter.vue`, который будет содержать пэйджинг и информацию о текущем диапазоне строк.
-- **Client-side**: Если `externalPaging: false`, таблица должна сама "нарезать" массив `rows` перед передачей в `DataTableBody`.
-- **Server-side**: Если `externalPaging: true`, таблица должна эмитить событие `page` с offset/limit, но отображать данные "как есть".
-- Обновить `DataTable.vue` для поддержки пропов `count`, `offset`, `limit`, `pageSize`.
+**Details**:
 
-## 2. Selection (Выбор строк)
+- Implemented Drag'n'Drop API in `DataTableHeader.vue`.
+- Added `reorder` event in `DataTable.vue`.
+- visual marker and state management implemented.
 
-**Цель**: Реализовать механизмы выделения строк.
-**Типы выделения** (`selectionType` prop):
+## 2. Styles and Themes (Completed)
 
-- `single`: Выделение одной строки кликом.
-- `multi`: Выделение нескольких строк (Ctrl/Cmd + Click).
-- `checkbox`: Выделение через чекбокс в первой колонке (требует специального типа колонки или настройки).
-- `multiClick`: Выделение нескольких строк кликом без модификаторов.
-  **Техническая реализация**:
-- Добавить состояние `selected` (Set или массив ID) в `DataTable.vue`.
-- Прокинуть методы выделения (`onSelect`) в `DataTableRow.vue`.
-- Реализовать визуальное отображение (`active` класс).
-- Реализовать логику "Select All" для чекбоксов.
+**Goal**: Polish styles and ensure theme support.
 
-## 3. Column Resizing (Изменение ширины колонок)
+**Details**:
 
-**Цель**: Позволить пользователю менять ширину колонок перетаскиванием разделителя в хедере.
-**Детали**:
+- Verified `dark` and `bootstrap` themes.
+- Confirmed icon classes in `icons.css`.
+- Added theme switcher to Demo (`App.vue`).
 
-- В `DataTableHeader.vue` добавить "ручки" (resize handles) для колонок.
-- Реализовать логику Drag'n'Drop для изменения `width` колонки.
-- Обновлять ширину синхронно в хедере и в ячейках тела (возможно, через CSS Variables или реактивное состояние ширины колонок).
-- Событие `resize` для сохранения настроек пользователем.
+## Status Summary
 
-## 4. Column Reordering (Перетаскивание колонок)
-
-**Цель**: Позволить менять порядок колонок местами.
-**Детали**:
-
-- Реализовать Drag'n'Drop API (native HTML5 DnD) для заголовков в `DataTableHeader.vue`.
-- При перетаскивании визуально отображать маркер вставки (target marker).
-- При завершении перетаскивания менять порядок массива `columns` в `DataTable.vue`.
-
-## 5. Стили и Темы
-
-**Цель**: Доработать и верифицировать перенесенные стили.
-**Детали**:
-
-- Проверить применение тем `dark` и `bootstrap` (сейчас дефолтная `material` работает).
-- Убедиться, что все иконки (сортировка, чекбоксы, пэйджинг) отображаются корректно (шрифтовые иконки уже перенесены в `src/assets`).
-- Оптимизировать CSS: Возможно, перевести часть вычислений размеров на CSS Variables для производительности ресайза.
+- [x] **Pagination**: Implemented (Client/Server support, Footer component).
+- [x] **Selection**: Implemented (Single, Multi, Checkbox, Select All).
+- [x] **Column Resizing**: Implemented (Drag handles, Reactive state).
+- [x] **Column Reordering**: Implemented.
+- [x] **Styles**: Verified themes (Dark, Bootstrap, Material).

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import type { TableColumn } from '../../types/table-column.type';
 import type { SortType } from '../../types/sort.type';
 
@@ -10,10 +10,14 @@ interface Props {
   sorts?: Array<any>;
   selectionType?: string;
   allRowsSelected?: boolean;
+  reorderable?: boolean;
 }
 
-const props = defineProps<Props>();
-const emit = defineEmits(['sort', 'select-all']);
+const props = withDefaults(defineProps<Props>(), {
+  reorderable: true
+});
+
+const emit = defineEmits(['sort', 'select-all', 'column-reorder']);
 
 const style = computed(() => ({
   height: `${props.headerHeight}px`,
@@ -64,7 +68,7 @@ const onResizeMove = (event: MouseEvent) => {
   }
 };
 
-const onResizeEnd = (event: MouseEvent) => {
+const onResizeEnd = () => {
   if (!resizingColumn) return;
   
   document.removeEventListener('mousemove', onResizeMove);
@@ -74,6 +78,73 @@ const onResizeEnd = (event: MouseEvent) => {
   
   resizingColumn = null;
 };
+
+// ------------------------------------------------------------------
+// Drag and Drop (Reordering) Logic
+// ------------------------------------------------------------------
+const dragTarget = ref<string | null>(null);
+
+const onDragStart = (event: DragEvent, column: TableColumn) => {
+  if (!props.reorderable) return;
+  
+  // Set data to identify the dragged column
+  if(event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', JSON.stringify(column));
+      // Optional: Set drag image if needed
+  }
+};
+
+const onDragOver = (event: DragEvent, targetColumn: TableColumn) => {
+    if (!props.reorderable) return;
+    
+    // Allow drop
+    event.preventDefault();
+    
+    if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = 'move';
+    }
+    
+    // Determine drop position (left or right of target) logic could go here
+    // For now simple target highlighting
+    const targetId = targetColumn.$$id || targetColumn.prop;
+    if (targetId)
+        dragTarget.value = String(targetId);
+};
+
+const onDragLeave = (event: DragEvent) => {
+    // We might need better logic to only clear if actually leaving the cell
+    // dragTarget.value = null; 
+};
+
+const onDrop = (event: DragEvent, targetColumn: TableColumn) => {
+    if (!props.reorderable) return;
+    event.preventDefault();
+    dragTarget.value = null;
+    
+    if(event.dataTransfer) {
+        const sourceJson = event.dataTransfer.getData('text/plain');
+        if (sourceJson) {
+            try {
+                const sourceColumn = JSON.parse(sourceJson) as TableColumn;
+                
+                // Identify source and target by prop or id
+                const sourceId = sourceColumn.$$id || sourceColumn.prop;
+                const targetId = targetColumn.$$id || targetColumn.prop;
+                
+                if (sourceId !== targetId) {
+                    emit('column-reorder', {
+                       source: sourceColumn,
+                       target: targetColumn
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to parse dropped column data', e);
+            }
+        }
+    }
+};
+
 </script>
 
 <template>
@@ -96,9 +167,20 @@ const onResizeEnd = (event: MouseEvent) => {
         v-for="col in columns" 
         :key="col.$$id || col.prop"
         class="datatable-header-cell"
-        :class="[col.headerClass, { resizeable: col.resizeable !== false }]"
+        :class="[
+            col.headerClass, 
+            { 
+                resizeable: col.resizeable !== false,
+                'drag-target': dragTarget === (col.$$id || col.prop)
+            }
+        ]"
         :style="{ width: col.width ? col.width + 'px' : '150px' }"
+        :draggable="reorderable"
         @click="onColumnClick(col)"
+        @dragstart="onDragStart($event, col)"
+        @dragover="onDragOver($event, col)"
+        @dragleave="onDragLeave($event)"
+        @drop="onDrop($event, col)"
       >
         <span class="datatable-header-cell-label draggable">
             {{ col.name || col.prop }}
@@ -108,6 +190,7 @@ const onResizeEnd = (event: MouseEvent) => {
             class="resize-handle" 
             @mousedown="onResizeStart(col, $event)"
             @click.stop
+            @dragstart.stop.prevent
         ></span>
       </div>
     </div>
@@ -128,6 +211,11 @@ const onResizeEnd = (event: MouseEvent) => {
   white-space: nowrap;
   text-overflow: ellipsis;
   position: relative; /* For handle positioning */
+}
+
+.datatable-header-cell.drag-target {
+    border-left: 2px solid var(--primary-color, #106cc8);
+    /* Or some other visual indicator */
 }
 
 /* Resize Handle */

@@ -27,6 +27,7 @@ import type { SelectionType } from './types/selection.type';
 // Selection State
 const selectionType = ref<SelectionType>('single');
 const selected = ref([]);
+const theme = ref('material');
 
 const onSelect = (event: any) => {
   console.log('Select Event:', event);
@@ -67,10 +68,15 @@ const onScroll = (e: Event) => {
   // console.log('Scroll:', (e.target as HTMLElement).scrollTop);
 };
 
+const onReorder = (newColumns: TableColumn[]) => {
+  columns.value = newColumns;
+  console.log('Columns reordered:', newColumns.map(c => c.name));
+};
+
 </script>
 
 <template>
-  <div class="app-container">
+  <div class="app-container" :class="{'dark-mode': theme === 'dark'}">
     <div class="header-params">
       <h1>Vue Swift Table Demo</h1>
       <div class="controls">
@@ -85,6 +91,14 @@ const onScroll = (e: Event) => {
                 <option value="multi">Multi (Ctrl/Cmd)</option>
                 <option value="multiClick">Multi Click</option>
                 <option value="checkbox">Checkbox</option>
+            </select>
+         </label>
+         <label>
+            Theme:
+            <select v-model="theme">
+                <option value="material">Material</option>
+                <option value="dark">Dark</option>
+                <option value="bootstrap">Bootstrap</option>
             </select>
          </label>
          <span>Selected: {{ selected.length }}</span>
@@ -109,6 +123,8 @@ const onScroll = (e: Event) => {
         :selectionType="selectionType"
         :selected="selected"
         @select="onSelect"
+        @reorder="onReorder"
+        :theme="theme"
       />
     </div>
   </div>
@@ -129,6 +145,12 @@ body {
   height: 100vh;
   padding: 20px;
   box-sizing: border-box;
+  transition: background-color 0.3s;
+  
+  &.dark-mode {
+      background-color: #1a1e28;
+      color: #fff;
+  }
 }
 
 .header-params {
