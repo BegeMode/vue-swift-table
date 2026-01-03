@@ -12,7 +12,7 @@ const isSafari = /Safari\//.test(ua) && !/Chrome\//.test(ua);
 
 export function translateXY(styles: Record<string, string>, x: number, y: number): void {
   if (typeof transform !== 'undefined' && hasCSSTransforms) {
-    if (!isSafari && hasCSS3DTransforms) {
+    if (!isSafari && hasCSS3DTransforms && backfaceVisibility) {
       styles[transform] = `translate3d(${x}px, ${y}px, 0)`;
       styles[backfaceVisibility] = 'hidden';
     } else {

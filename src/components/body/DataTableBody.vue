@@ -3,25 +3,34 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import type { CSSProperties } from 'vue';
 
 import type { TableColumn } from '../../types/table-column.type';
+import type { IGroupedRows } from '../../types/grouped-rows';
 import DataTableRow from './DataTableRow.vue';
+import DataTableGroupHeader from './DataTableGroupHeader.vue';
+import DataTableSummaryRow from './DataTableSummaryRow.vue';
 
 interface Props {
-  rows: Array<Record<string, unknown>>;
+  rows: Array<Record<string, unknown> | IGroupedRows | any>;
   columns: Array<TableColumn>;
+  columnStyles?: Record<string, CSSProperties>;
+  innerWidth?: number;
   rowHeight: number;
   bodyHeight?: number | string; // explicit height if needed, or flex
   selected?: Array<any>;
   selectionType?: string;
   rowIdentity?: (row: any) => any;
+  summaryRow?: boolean;
+  summaryPosition?: 'top' | 'bottom';
+  summaryHeight?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   rows: () => [],
   rowHeight: 50,
-  selected: () => []
+  selected: () => [],
+  summaryHeight: 30
 });
 
-const emit = defineEmits(['scroll', 'update:scrollTop', 'row-select', 'activate']);
+const emit = defineEmits(['scroll', 'update:scrollTop', 'row-select', 'activate', 'group-toggle']);
 
 // State
 const scrollTop = ref(0);
@@ -88,15 +97,22 @@ const visibleRows = computed(() => {
 const scrollerStyle = computed<CSSProperties>(() => ({
   height: '100%',
   overflowY: 'auto',
-  overflowX: 'hidden', // Columns usually handle X scroll or native
+  overflowX: 'auto',
   position: 'relative'
 }));
 
 const contentStyle = computed<CSSProperties>(() => ({
-  height: `${totalHeight.value}px`,
-  width: '100%',
+  height: `${totalHeight.value + (props.summaryRow ? props.summaryHeight : 0)}px`,
+  width: props.innerWidth ? `${props.innerWidth}px` : '100%',
   position: 'relative'
 }));
+
+const rowOffset = computed(() => {
+    if (props.summaryRow && props.summaryPosition === 'top') {
+        return props.summaryHeight;
+    }
+    return 0;
+});
 
 </script>
 
@@ -107,17 +123,46 @@ const contentStyle = computed<CSSProperties>(() => ({
     :style="scrollerStyle"
   >
     <div :style="contentStyle" class="datatable-scroll">
-       <DataTableRow
-         v-for="item in visibleRows"
-         :key="item.rowIndex"
-         :row="item.row"
-         :rowIndex="item.rowIndex"
+       <DataTableSummaryRow 
+         v-if="summaryRow && summaryPosition === 'top'"
+         :rows="rows"
          :columns="columns"
-         :rowHeight="rowHeight"
-         :isSelected="selected?.includes(item.row)"
-         :selectionType="selectionType"
-         @select="emit('row-select', { row: item.row, event: $event })"
-         @activate="emit('activate', { row: item.row, event: $event })"
+         :columnStyles="columnStyles"
+         :rowHeight="summaryHeight"
+         style="position: sticky; top: 0; z-index: 10;"
+       />
+
+       <template v-for="item in visibleRows" :key="item.rowIndex">
+         <DataTableGroupHeader
+           v-if="item.row.__isGroup"
+           :group="item.row"
+           :expanded="item.row.expanded"
+           :rowHeight="rowHeight"
+           :style="{ transform: `translateY(${item.rowIndex * rowHeight}px)`, position: 'absolute', width: '100%', top: `${rowOffset}px` }"
+           @toggle="emit('group-toggle', $event)"
+         />
+         <DataTableRow
+           v-else
+           :row="item.row"
+           :rowIndex="item.rowIndex"
+           :columns="columns"
+           :columnStyles="columnStyles"
+           :rowHeight="rowHeight"
+           :isSelected="selected?.includes(item.row)"
+           :selectionType="selectionType"
+           :style="{ top: `${rowOffset}px` }"
+           @select="emit('row-select', { row: item.row, event: $event })"
+           @activate="emit('activate', { row: item.row, event: $event })"
+         />
+       </template>
+
+       <DataTableSummaryRow 
+         v-if="summaryRow && summaryPosition === 'bottom'"
+         :rows="rows"
+         :columns="columns"
+         :columnStyles="columnStyles"
+         :rowHeight="summaryHeight"
+         :style="{ position: 'sticky', bottom: 0, zIndex: 10, marginTop: `${totalHeight}px` }"
        />
     </div>
   </div>

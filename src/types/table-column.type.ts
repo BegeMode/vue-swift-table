@@ -1,4 +1,3 @@
-// import { PipeTransform } from '@angular/core';
 import { SortDirection } from './sort-direction.type';
 import type { VNode } from 'vue';
 import type { ValueGetter } from '../utils/column-prop-getters';

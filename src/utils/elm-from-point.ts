@@ -12,9 +12,9 @@ if (typeof document !== 'undefined' && !document.elementsFromPoint) {
 export function elementsFromPoint(x: number, y: number): Array<Element> {
   const elements: Array<Element> = [];
   const previousPointerEvents: Array<{ value: string; priority: string }> = [];
-  let current: Element; // TODO: window.getComputedStyle should be used with inferred type (Element)
+  let current: Element | null; // TODO: window.getComputedStyle should be used with inferred type (Element)
   let i: number;
-  let d: { value: string; priority: string };
+  let d: { value: string; priority: string } | undefined;
 
   // if (document === undefined) return elements;
 

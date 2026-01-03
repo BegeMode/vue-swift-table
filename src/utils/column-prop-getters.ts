@@ -1,7 +1,7 @@
 // maybe rename this file to prop-getters.ts
 
-import { TableColumnProp } from 'types/table-column.type';
-import { isNullOrUndefined } from 'utils/column-helper';
+import type { TableColumnProp } from '../types/table-column.type';
+import { isNullOrUndefined } from './column-helper';
 
 export type ValueGetter = (obj: Record<string, unknown>, prop: TableColumnProp) => unknown;
 
@@ -19,17 +19,17 @@ export function emptyStringGetter(): string {
  */
 export function getterForProp(prop: TableColumnProp): ValueGetter {
   if (isNullOrUndefined(prop)) {
-    return emptyStringGetter;
+    return emptyStringGetter as ValueGetter;
   }
 
   if (typeof prop === 'number') {
-    return numericIndexGetter;
+    return numericIndexGetter as ValueGetter;
   }
   // deep or simple
   if (prop.indexOf('.') !== -1) {
-    return deepValueGetter;
+    return deepValueGetter as ValueGetter;
   }
-  return shallowValueGetter;
+  return shallowValueGetter as ValueGetter;
 }
 
 /**
@@ -105,7 +105,7 @@ export function deepValueGetter(obj: Record<string, unknown>, path: string): unk
   if (split.length) {
     // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let i = 0; i < split.length; i++) {
-      current = (current as Record<string, unknown>)[split[i]];
+      current = (current as Record<string, unknown>)[split[i] as string];
 
       // if found undefined, return empty string
       // eslint-disable-next-line no-undefined

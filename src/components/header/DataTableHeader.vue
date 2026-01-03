@@ -5,6 +5,8 @@ import type { SortType } from '../../types/sort.type';
 
 interface Props {
   columns: Array<TableColumn>;
+  columnStyles?: Record<string, any>; // CSSProperties
+  innerWidth?: number;
   headerHeight: number;
   sortType?: SortType | string;
   sorts?: Array<any>;
@@ -112,7 +114,7 @@ const onDragOver = (event: DragEvent, targetColumn: TableColumn) => {
         dragTarget.value = String(targetId);
 };
 
-const onDragLeave = (event: DragEvent) => {
+const onDragLeave = (_event: DragEvent) => {
     // We might need better logic to only clear if actually leaving the cell
     // dragTarget.value = null; 
 };
@@ -149,7 +151,7 @@ const onDrop = (event: DragEvent, targetColumn: TableColumn) => {
 
 <template>
   <div class="datatable-header" :style="style">
-    <div class="datatable-header-inner">
+    <div class="datatable-header-inner" :style="{ width: innerWidth ? innerWidth + 'px' : '100%' }">
       <div 
         v-if="selectionType === 'checkbox'" 
         class="datatable-header-cell datatable-checkbox-cell"
@@ -171,10 +173,11 @@ const onDrop = (event: DragEvent, targetColumn: TableColumn) => {
             col.headerClass, 
             { 
                 resizeable: col.resizeable !== false,
-                'drag-target': dragTarget === (col.$$id || col.prop)
+                'drag-target': dragTarget === (col.$$id || col.prop),
+                'frozen': col.frozenLeft || col.frozenRight 
             }
         ]"
-        :style="{ width: col.width ? col.width + 'px' : '150px' }"
+        :style="{ width: col.width ? col.width + 'px' : '150px', ...(columnStyles?.[col.$$id || col.prop || ''] || {}) }"
         :draggable="reorderable"
         @click="onColumnClick(col)"
         @dragstart="onDragStart($event, col)"

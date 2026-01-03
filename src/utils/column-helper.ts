@@ -1,5 +1,4 @@
-import { TableColumn } from 'types/table-column.type';
-import Vue from 'vue';
+import type { TableColumn } from '@/types/table-column.type';
 // import { DataTableColumnDirective } from '../components/columns';
 import { camelCase, deCamelCase } from './camel-case';
 import { getterForProp } from './column-prop-getters';
@@ -8,7 +7,7 @@ import { id } from './id';
 /**
  * Sets the column defaults
  */
-export function setColumnsDefaults(columns: TableColumn[], vm: Vue): void {
+export function setColumnsDefaults(columns: TableColumn[]): void {
   if (!columns) {
     return;
   }
@@ -19,24 +18,24 @@ export function setColumnsDefaults(columns: TableColumn[], vm: Vue): void {
   let treeColumnFound = false;
 
   for (const column of columns) {
-    setColumnDefaults(column, vm);
+    setColumnDefaults(column);
     if (!('isTreeColumn' in column)) {
-      vm.$set(column, 'isTreeColumn', false);
+      column.isTreeColumn = false;
     } else if (column.isTreeColumn && !treeColumnFound) {
       // If the first column with isTreeColumn is true found
       // we mark that treeCoulmn is found
-      vm.$set(column, 'isTreeColumn', true);
+      column.isTreeColumn = true;
       treeColumnFound = true;
     } else {
       // After that isTreeColumn property for any other column
       // will be set as false
-      vm.$set(column, 'isTreeColumn', false);
+      column.isTreeColumn = false;
     }
   }
 }
 
-export function setColumnDefaults(column: TableColumn, vm: Vue): void {
-  if (!column) {
+export function setColumnDefaults(column: TableColumn): void {
+  if (!column || !column.prop) {
     return;
   }
 
@@ -50,7 +49,7 @@ export function setColumnDefaults(column: TableColumn, vm: Vue): void {
     column.prop = camelCase(column.name);
   }
 
-  vm.$set(column, '$$valueGetter', getterForProp(column.prop));
+  column.$$valueGetter = getterForProp(column.prop);
 
   // format props if no name passed
   if (!isNullOrUndefined(column.prop) && isNullOrUndefined(column.name)) {
@@ -62,19 +61,19 @@ export function setColumnDefaults(column: TableColumn, vm: Vue): void {
   }
 
   if (!('resizeable' in column)) {
-    vm.$set(column, 'resizeable', true);
+    column.resizeable = true;
   }
 
   if (!('sortable' in column)) {
-    vm.$set(column, 'sortable', true);
+    column.sortable = true;
   }
 
   if (!('draggable' in column)) {
-    vm.$set(column, 'draggable', true);
+    column.draggable = true;
   }
 
   if (!('visible' in column)) {
-    vm.$set(column, 'visible', true);
+    column.visible = true;
   }
 
   if (!('canAutoResize' in column) || isNullOrUndefined(column.canAutoResize)) {
@@ -82,12 +81,9 @@ export function setColumnDefaults(column: TableColumn, vm: Vue): void {
   }
 
   if (!('width' in column) || !column.width) {
-    vm.$set(column, 'width', 150);
-  } else {
-    vm.$set(column, 'width', column.width);
+    column.width = 150;
   }
-  vm.$set(column, 'isTreeColumn', column.isTreeColumn);
-  vm.$set(column, 'isTarget', isNullOrUndefined(column.isTarget) ? false : column.isTarget);
+  column.isTarget = isNullOrUndefined(column.isTarget) ? false : column.isTarget;
 }
 
 export function isNullOrUndefined<T>(value: T | null | undefined): value is null | undefined {

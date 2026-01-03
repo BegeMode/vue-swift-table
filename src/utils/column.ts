@@ -1,4 +1,4 @@
-import { TableColumn } from 'types/table-column.type';
+import type { TableColumn } from '@/types/table-column.type';
 
 export interface IColumnsWidth {
   left: number;
@@ -71,13 +71,11 @@ export function columnTotalWidth(columns: TableColumn[]): number {
       if (c.hidden || !c.visible) {
         continue;
       }
-      // const has = Boolean(prop && c[prop]);
-      // const width = c.hidden ? 0 : has ? c[prop] : c.width;
       let width = c.hidden || !c.visible ? 0 : c.width || c.$$oldWidth;
       if (typeof width === 'string') {
         width = parseFloat(width);
       }
-      totalWidth = totalWidth + width;
+      totalWidth = totalWidth + (width ?? 0);
     }
   }
 
@@ -91,9 +89,7 @@ export function columnsTotalWidth(columns: TableColumn[] /* , prop?: any */): nu
   let totalWidth = 0;
 
   for (const column of columns) {
-    // const has = prop && column[prop];
-    // totalWidth = totalWidth + (has ? column[prop] : column.width);
-    totalWidth = totalWidth + column.width;
+    totalWidth = totalWidth + (column.width ?? 0);
   }
 
   return totalWidth;

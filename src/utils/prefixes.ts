@@ -9,7 +9,7 @@ const testStyle: CSSStyleDeclaration | undefined = typeof document !== 'undefine
 // eslint-disable-next-line prettier/prettier
 const prefix: { dom: string; lowercase: string; css: string; js: string } | undefined = (function () {
   const styles = typeof window !== 'undefined' ? window.getComputedStyle(document.documentElement, '') : undefined;
-  let match: RegExpMatchArray = null;
+  let match: RegExpMatchArray | null = null;
   if (styles) {
     // eslint-disable-next-line @typescript-eslint/prefer-regexp-exec
     match = Object.keys(styles)
@@ -18,15 +18,15 @@ const prefix: { dom: string; lowercase: string; css: string; js: string } | unde
   }
   // const match: CSSStyleDeclaration = typeof styles !== 'undefined' ?
   //   Array.prototype.slice.call(styles).join('').match(/-(moz|webkit|ms)-/) : null;
-  const pre = match !== null ? match[1] : undefined;
-  const dom = typeof pre !== 'undefined' ? new RegExp('(' + pre + ')', 'i').exec('WebKit|Moz|MS|O')[1] : undefined;
+  const pre = match && match[1] ? match[1] : undefined;
+  const dom = typeof pre !== 'undefined' ? new RegExp('(' + pre + ')', 'i').exec('WebKit|Moz|MS|O')?.[1] : undefined;
 
-  return dom
+  return dom && pre
     ? {
         dom,
         lowercase: pre,
         css: `-${pre}-`,
-        js: pre[0].toUpperCase() + pre.substr(1),
+        js: pre.charAt(0).toUpperCase() + pre.slice(1),
       }
     : undefined;
 })();

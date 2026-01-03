@@ -2,29 +2,29 @@
  * Throttle a function
  */
 export function throttle(
-  func: (...args: Array<unknown>) => unknown,
+  func: (...args: any[]) => unknown,
   wait: number,
   options?: { leading?: boolean; trailing?: boolean }
-): (...args: Array<unknown>) => unknown {
+): (...args: any[]) => unknown {
   options = options || {};
-  let context: unknown;
-  let args: IArguments;
+  let context: any;
+  let args: any;
   let result: unknown;
-  let timeout: number = null;
+  let timeout: ReturnType<typeof setTimeout> | undefined;
   let previous = 0;
 
   function later() {
-    previous = options.leading === false ? 0 : Number(new Date());
-    timeout = null;
+    previous = options!.leading === false ? 0 : Number(new Date());
+    timeout = undefined;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     result = func.apply(context, args);
   }
 
   // eslint-disable-next-line prettier/prettier
-  return function (this: unknown) {
+  return function (this: any) {
     const now = Number(new Date());
 
-    if (!previous && options.leading === false) {
+    if (!previous && options!.leading === false) {
       previous = now;
     }
 
@@ -35,13 +35,15 @@ export function throttle(
     args = arguments;
 
     if (remaining <= 0) {
-      clearTimeout(timeout);
-      timeout = null;
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = undefined;
+      }
       previous = now;
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       result = func.apply(context, args);
-    } else if (!timeout && options.trailing !== false) {
-      timeout = setTimeout(later, remaining) as unknown as number;
+    } else if (!timeout && options!.trailing !== false) {
+      timeout = setTimeout(later, remaining);
     }
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return result;
@@ -59,7 +61,7 @@ export function throttle(
 export function throttleable(duration: number, options?: { leading?: boolean; trailing?: boolean }) {
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   return function innerDecorator(
-    target: unknown,
+    _target: unknown,
     key: PropertyKey,
     descriptor: PropertyDescriptor
   ): PropertyDescriptor {
@@ -74,7 +76,7 @@ export function throttleable(duration: number, options?: { leading?: boolean; tr
           value: throttle(descriptor.value as (...args: Array<unknown>) => unknown, duration, options),
         });
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
-        return this[key];
+        return (this as any)[key];
       },
     };
   };

@@ -21,6 +21,9 @@ const rows = ref(generateData(100)); // Reduce for pagination test
 const limit = ref(10);
 const footerHeight = ref(50);
 const externalPaging = ref(false);
+const groupRowsBy = ref<string[]>([]);
+const summaryRow = ref(false);
+const summaryPosition = ref<'top' | 'bottom'>('top');
 
 import type { SelectionType } from './types/selection.type';
 
@@ -41,7 +44,19 @@ const onPage = (event: any) => {
 const columns = ref<TableColumn[]>([
   { prop: 'id', name: 'ID', width: 80, resizeable: true, sortable: true },
   { prop: 'name', name: 'Name', width: 200, resizeable: true, sortable: true },
-  { prop: 'age', name: 'Age', width: 100, resizeable: true, sortable: true },
+  { 
+    prop: 'age', 
+    name: 'Age', 
+    width: 100, 
+    resizeable: true, 
+    sortable: true,
+    summaryFunc: (cells: unknown[]) => {
+       const nums = cells.filter(c => typeof c === 'number') as number[];
+       if (!nums.length) return 'Avg 0';
+       const sum = nums.reduce((a, b) => a + b, 0);
+       return `Avg ${(sum / nums.length).toFixed(1)}`;
+    }
+  },
   { prop: 'email', name: 'Email', width: 250, resizeable: true, sortable: true },
   { prop: 'company', name: 'Company', width: 200, resizeable: true, sortable: true },
   { prop: 'address', name: 'Address', width: 300, resizeable: true, sortable: false },
@@ -102,6 +117,19 @@ const onReorder = (newColumns: TableColumn[]) => {
             </select>
          </label>
          <span>Selected: {{ selected.length }}</span>
+         <button @click="groupRowsBy = groupRowsBy.length ? [] : ['company']">
+            Toggle Grouping (Company)
+         </button>
+         <label>
+             <input type="checkbox" v-model="summaryRow"> Summary Row
+         </label>
+         <label>
+             Summary Position:
+             <select v-model="summaryPosition">
+                 <option value="top">Top</option>
+                 <option value="bottom">Bottom</option>
+             </select>
+         </label>
       </div>
       <p>Rows: {{ rows.length }} | Virtualization: ON</p>
     </div>
@@ -125,6 +153,9 @@ const onReorder = (newColumns: TableColumn[]) => {
         @select="onSelect"
         @reorder="onReorder"
         :theme="theme"
+        :groupRowsBy="groupRowsBy"
+        :summaryRow="summaryRow"
+        :summaryPosition="summaryPosition"
       />
     </div>
   </div>

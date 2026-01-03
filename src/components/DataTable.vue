@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed, provide, toRefs } from 'vue';
+import { computed, provide, toRefs, ref, watch } from 'vue';
 import DataTableBody from './body/DataTableBody.vue';
 import DataTableHeader from './header/DataTableHeader.vue';
 import DataTableFooter from './footer/DataTableFooter.vue';
-import { ref, watch } from 'vue';
+import { useRowGrouping } from '../composables/useRowGrouping';
+import { columnsByPin, columnsTotalWidth } from '../utils/column';
+import type { CSSProperties } from 'vue';
 
 import type { TableColumn } from '../types/table-column.type';
 import type { SortType } from '../types/sort.type';
@@ -126,7 +128,22 @@ const rowCount = computed(() => {
 
 const pagedRows = computed(() => {
   if (props.externalPaging) return props.rows;
-  // If no page size defined, show all
+  
+  // Grouping Paging
+  if (props.groupRowsBy && props.groupRowsBy.length) {
+      if (!groupTree.value) return [];
+      
+      // If no page size, return full flat list
+      if (!pageSize.value) return groupedRows.value;
+
+      // Slice Groups (Top Level)
+      const start = internalOffset.value * pageSize.value;
+      const end = start + pageSize.value;
+      const pagedGroups = groupTree.value.slice(start, end);
+      return flattenGroups(pagedGroups);
+  }
+
+  // Row Paging
   if (!pageSize.value) return props.rows;
   
   const start = internalOffset.value * pageSize.value;
@@ -142,6 +159,27 @@ const onPage = (event: { offset: number; limit: number; count: number }) => {
 };
 
 // ------------------------------------------------------------------
+// Grouping Logic
+// ------------------------------------------------------------------
+const { groupedRows, groupTree, flattenGroups, onGroupToggle: onGroupToggleLogic } = useRowGrouping(
+  toRefs(props).rows,
+  toRefs(props).groupRowsBy,
+  toRefs(props).groupExpansionDefault
+);
+
+const onGroupToggle = (event: any) => {
+    // Event comes from Body/Header: { type: 'group', value: group }
+    // Or just group object?
+    // Vue 2 body-group-header emitted { type: 'group', value: this.group }
+    // Our DataTableGroupHeader emits user object.
+    // Let's assume the event payload IS the group object or { value: group }
+    // I'll check DataTableGroupHeader.vue: emit('toggle', props.group)
+    // So event is the group.
+    onGroupToggleLogic(event);
+    emit('group-toggle', event);
+};
+
+// ------------------------------------------------------------------
 // Selection Logic
 // ------------------------------------------------------------------
 const selectedState = ref<any[]>(props.selected || []);
@@ -151,7 +189,7 @@ watch(() => props.selected, (val) => {
   selectedState.value = val || [];
 });
 
-const onRowSelect = ({ row, type, event }: { row: any; type?: string; event?: MouseEvent }) => {
+const onRowSelect = ({ row, type: _type, event }: { row: any; type?: string; event?: MouseEvent }) => {
   if (!props.selectionType) return;
 
   const select = (r: any) => {
@@ -247,25 +285,67 @@ const onColumnReorder = ({ source, target }: { source: TableColumn, target: Tabl
              columns.splice(targetIdx, 0, movedColumn);
              emit('reorder', columns);
         }
-        // We probably need to emit an update event for the parent to handle, 
-        // or if we have a mutable array (less ideal in Vue 3 props).
-        // Since we don't have update:columns emit defined yet, let's define it or just rely on parent binding?
-        // Spec says "reorder the columns array in DataTable.vue", but DataTable receives it as prop.
-        // Standard Vue pattern: emit update:columns.
-        
-        // However, if we look at existing code, there is no update:columns.
-        // Let's emit a generic event or try to mutate if it's expected (but it warns).
-        // Best approach: emit 'reorder' event with new columns order.
-        
-        emit('reorder', columns);
-        // Also emit update:columns for v-model:columns support if user wants it
-        // emit('update:columns', columns); 
-        
-        // Wait, spec said "On drop, reorder the columns array in DataTable.vue". 
-        // If columns are props, we cannot mutate them. 
-        // We should check if we can emit an event.
     }
 };
+
+
+
+// ------------------------------------------------------------------
+// Column Pinning / Sticky Logic
+// ------------------------------------------------------------------
+const innerWidth = computed(() => {
+  if (!props.columns) return 0;
+  return columnsTotalWidth(props.columns);
+});
+
+const sortedColumns = computed(() => {
+  if (!props.columns) return [];
+  const { left, center, right } = columnsByPin(props.columns);
+  return [...left, ...center, ...right];
+});
+
+const columnStyles = computed(() => {
+  const styles: Record<string, CSSProperties> = {};
+  if (!props.columns) return styles;
+  
+  const { left, right } = columnsByPin(props.columns);
+  
+  let leftOffset = 0;
+  for (const col of left) {
+    const id = col.$$id || col.prop || '';
+    if (id) {
+       styles[String(id)] = {
+         position: 'sticky',
+         left: `${leftOffset}px`,
+         zIndex: 2
+       };
+    }
+    const width = col.width || 150;
+    leftOffset += width;
+  }
+  
+  let rightOffset = 0;
+  // Right columns are sorted Left-to-Right in the 'right' array.
+  // To stack them correctly on the right, we reverse iteration.
+  // The last column in 'right' array is the right-most, so right: 0.
+  // The second to last has right: width of last.
+  for (let i = right.length - 1; i >= 0; i--) {
+     const col = right[i];
+     if (!col) continue;
+     const id = col.$$id || col.prop || '';
+     if (id) {
+       styles[String(id)] = {
+         position: 'sticky',
+         right: `${rightOffset}px`,
+         zIndex: 2
+       };
+     }
+     const width = col.width || 150;
+     rightOffset += width;
+  }
+  
+  return styles;
+});
 
 const onScroll = (e: Event) => {
   emit('scroll', e);
@@ -276,7 +356,9 @@ const onScroll = (e: Event) => {
   <div :class="componentClasses">
     <div class="visible">
       <DataTableHeader
-        :columns="columns"
+        :columns="sortedColumns"
+        :columnStyles="columnStyles"
+        :innerWidth="innerWidth"
         :headerHeight="headerHeight"
         :sorts="sorts"
         :selectionType="selectionType"
@@ -289,13 +371,18 @@ const onScroll = (e: Event) => {
       <!-- Body Component -->
       <DataTableBody
         :rows="pagedRows"
-        :columns="columns"
+        :columns="sortedColumns"
+        :columnStyles="columnStyles"
+        :innerWidth="innerWidth"
         :rowHeight="Number(rowHeight)" 
         :bodyHeight="height"
         :selected="selectedState"
         :selectionType="selectionType"
+        :summaryRow="summaryRow"
+        :summaryPosition="summaryPosition"
         @scroll="onScroll"
         @row-select="onRowSelect"
+        @group-toggle="onGroupToggle"
       />
 
       <!-- Footer Component will go here -->

@@ -7,6 +7,7 @@ interface Props {
   row: Record<string, unknown>;
   rowIndex: number;
   columns: Array<TableColumn>;
+  columnStyles?: Record<string, any>; // CSSProperties
 
   rowHeight: number;
   isSelected?: boolean;
@@ -55,8 +56,10 @@ const style = computed(() => ({
       <DataTableBodyCell
         v-for="(col, index) in columns"
         :key="col.$$id || col.prop || index"
+        :class="{ 'frozen': col.frozenLeft || col.frozenRight }"
         :column="col"
         :row="row"
+        :style="columnStyles?.[col.$$id || col.prop || ''] || {}"
       />
     </div>
   </div>
