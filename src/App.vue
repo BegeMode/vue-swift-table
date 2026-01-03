@@ -37,14 +37,14 @@ const onPage = (event: any) => {
   console.log('Page Event:', event);
 };
 
-const columns: TableColumn[] = [
+const columns = ref<TableColumn[]>([
   { prop: 'id', name: 'ID', width: 80, resizeable: true, sortable: true },
   { prop: 'name', name: 'Name', width: 200, resizeable: true, sortable: true },
   { prop: 'age', name: 'Age', width: 100, resizeable: true, sortable: true },
   { prop: 'email', name: 'Email', width: 250, resizeable: true, sortable: true },
   { prop: 'company', name: 'Company', width: 200, resizeable: true, sortable: true },
   { prop: 'address', name: 'Address', width: 300, resizeable: true, sortable: false },
-];
+]);
 
 const onSort = (event: any) => {
   console.log('Sort Event:', event);

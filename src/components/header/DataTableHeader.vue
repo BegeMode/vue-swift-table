@@ -25,6 +25,55 @@ const onColumnClick = (column: TableColumn) => {
     emit('sort', { column });
   }
 };
+
+// ------------------------------------------------------------------
+// Resize Logic
+// ------------------------------------------------------------------
+let resizingColumn: TableColumn | null = null;
+let startX = 0;
+let startWidth = 0;
+
+const onResizeStart = (column: TableColumn, event: MouseEvent) => {
+  if (!column.resizeable) return;
+  
+  event.preventDefault();
+  event.stopPropagation();
+  
+  resizingColumn = column;
+  startX = event.pageX;
+  startWidth = column.width || 150;
+  
+  document.addEventListener('mousemove', onResizeMove);
+  document.addEventListener('mouseup', onResizeEnd);
+  document.body.style.cursor = 'ew-resize';
+  document.body.style.userSelect = 'none'; // Prevent text selection
+};
+
+const onResizeMove = (event: MouseEvent) => {
+  if (!resizingColumn) return;
+  
+  const diff = event.pageX - startX;
+  const newWidth = Math.max(30, startWidth + diff); // Min width 30
+  
+  if (resizingColumn.maxWidth && newWidth > resizingColumn.maxWidth) {
+      resizingColumn.width = resizingColumn.maxWidth;
+  } else if (resizingColumn.minWidth && newWidth < resizingColumn.minWidth) {
+      resizingColumn.width = resizingColumn.minWidth;
+  } else {
+      resizingColumn.width = newWidth;
+  }
+};
+
+const onResizeEnd = (event: MouseEvent) => {
+  if (!resizingColumn) return;
+  
+  document.removeEventListener('mousemove', onResizeMove);
+  document.removeEventListener('mouseup', onResizeEnd);
+  document.body.style.cursor = '';
+  document.body.style.userSelect = '';
+  
+  resizingColumn = null;
+};
 </script>
 
 <template>
@@ -47,13 +96,19 @@ const onColumnClick = (column: TableColumn) => {
         v-for="col in columns" 
         :key="col.$$id || col.prop"
         class="datatable-header-cell"
-        :class="col.headerClass"
+        :class="[col.headerClass, { resizeable: col.resizeable !== false }]"
         :style="{ width: col.width ? col.width + 'px' : '150px' }"
         @click="onColumnClick(col)"
       >
         <span class="datatable-header-cell-label draggable">
             {{ col.name || col.prop }}
         </span>
+        <span 
+            v-if="col.resizeable !== false"
+            class="resize-handle" 
+            @mousedown="onResizeStart(col, $event)"
+            @click.stop
+        ></span>
       </div>
     </div>
   </div>
@@ -72,5 +127,22 @@ const onColumnClick = (column: TableColumn) => {
   vertical-align: top;
   white-space: nowrap;
   text-overflow: ellipsis;
+  position: relative; /* For handle positioning */
+}
+
+/* Resize Handle */
+.resize-handle {
+  display: inline-block;
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  cursor: ew-resize;
+  z-index: 100;
+}
+
+.resize-handle:hover {
+  background-color: rgba(0, 0, 0, 0.1);
 }
 </style>
