@@ -2,6 +2,8 @@
 import { computed, provide, toRefs } from 'vue';
 import DataTableBody from './body/DataTableBody.vue';
 import DataTableHeader from './header/DataTableHeader.vue';
+import DataTableFooter from './footer/DataTableFooter.vue';
+import { ref, watch } from 'vue';
 
 import type { TableColumn } from '../types/table-column.type';
 import type { SortType } from '../types/sort.type';
@@ -99,6 +101,42 @@ const emit = defineEmits([
   'scroll'
 ]);
 
+// ------------------------------------------------------------------
+// Pagination Logic
+// ------------------------------------------------------------------
+const internalOffset = ref(props.offset || 0);
+
+watch(() => props.offset, (val) => {
+  if (val !== undefined) internalOffset.value = val;
+});
+
+const pageSize = computed(() => {
+  // If undefined, we show all rows (no paging)
+  return props.pageSize || 0;
+});
+
+const rowCount = computed(() => {
+  if (props.externalPaging) return props.count || 0;
+  return props.rows.length;
+});
+
+const pagedRows = computed(() => {
+  if (props.externalPaging) return props.rows;
+  // If no page size defined, show all
+  if (!pageSize.value) return props.rows;
+  
+  const start = internalOffset.value * pageSize.value;
+  const end = start + pageSize.value;
+  return props.rows.slice(start, end);
+});
+
+const onPage = (event: { offset: number; limit: number; count: number }) => {
+  if (!props.externalPaging) {
+    internalOffset.value = event.offset;
+  }
+  emit('page', event);
+};
+
 // Computed classes for the root element
 const componentClasses = computed(() => ({
   'ngx-datatable': true,
@@ -140,7 +178,7 @@ const onScroll = (e: Event) => {
 
       <!-- Body Component -->
       <DataTableBody
-        :rows="rows"
+        :rows="pagedRows"
         :columns="columns"
         :rowHeight="Number(rowHeight)" 
         :bodyHeight="height"
@@ -148,9 +186,21 @@ const onScroll = (e: Event) => {
       />
 
       <!-- Footer Component will go here -->
-      <div v-if="footerHeight" class="datatable-footer" :style="{ height: footerHeight + 'px' }">
-        Footer Placeholder
-      </div>
+      <DataTableFooter
+        v-if="footerHeight"
+        :footerHeight="footerHeight"
+        :rowCount="rowCount"
+        :pageSize="pageSize"
+        :offset="internalOffset"
+        :pagerLeftArrowIcon="cssClasses.pagerLeftArrow as string"
+        :pagerRightArrowIcon="cssClasses.pagerRightArrow as string"
+        :pagerPreviousIcon="cssClasses.pagerPrevious as string"
+        :pagerNextIcon="cssClasses.pagerNext as string"
+        :totalMessage="messages.totalMessage"
+        :selectedMessage="selected?.length > 0 ? messages.selectedMessage : false"
+        :selectedCount="selected?.length"
+        @page="onPage"
+      />
     </div>
   </div>
 </template>

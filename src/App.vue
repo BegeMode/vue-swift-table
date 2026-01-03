@@ -15,7 +15,16 @@ const generateData = (count: number) => {
   }));
 };
 
-const rows = ref(generateData(10000)); // Generate 10k rows for stress testing virtualization
+const rows = ref(generateData(100)); // Reduce for pagination test
+
+// Pagination State
+const limit = ref(10);
+const footerHeight = ref(50);
+const externalPaging = ref(false);
+
+const onPage = (event: any) => {
+  console.log('Page Event:', event);
+};
 
 const columns: TableColumn[] = [
   { prop: 'id', name: 'ID', width: 80, resizeable: true, sortable: true },
@@ -53,6 +62,11 @@ const onScroll = (e: Event) => {
   <div class="app-container">
     <div class="header-params">
       <h1>Vue Swift Table Demo</h1>
+      <div class="controls">
+         <label>Page Size: <input type="number" v-model="limit" /></label>
+         <label>Footer Height: <input type="number" v-model="footerHeight" /></label>
+         <label><input type="checkbox" v-model="externalPaging" /> Server-side Paging</label>
+      </div>
       <p>Rows: {{ rows.length }} | Virtualization: ON</p>
     </div>
 
@@ -66,6 +80,10 @@ const onScroll = (e: Event) => {
         :height="600"
         @sort="onSort"
         @scroll="onScroll"
+        @page="onPage"
+        :pageSize="limit"
+        :footerHeight="footerHeight"
+        :externalPaging="externalPaging"
       />
     </div>
   </div>
