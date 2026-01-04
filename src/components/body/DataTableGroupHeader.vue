@@ -11,41 +11,31 @@ const props = defineProps<{
 const emit = defineEmits(['toggle']);
 
 const toggleExpandGroup = () => {
-    emit('toggle', props.group);
+  emit('toggle', props.group);
 };
 
 const groupTitle = computed(() => {
-    if (!props.group.keys || !props.group.keys.length) {
-       return props.group.key;
-    }
-    return props.group.keys.map(k => `${k.title || k.prop} - ${k.value}`).join('; ');
+  if (!props.group.keys || !props.group.keys.length) {
+    return props.group.key;
+  }
+  return props.group.keys.map(k => `${k.title || k.prop} - ${k.value}`).join('; ');
 });
 
 const styles = computed(() => ({
-    paddingLeft: props.group.level ? `${props.group.level * 10}px` : '5px',
-    height: `${props.rowHeight}px`,
-    lineHeight: `${props.rowHeight}px`
+  paddingLeft: props.group.level ? `${props.group.level * 10}px` : '5px',
+  height: `${props.rowHeight}px`,
+  lineHeight: `${props.rowHeight}px`,
 }));
 </script>
 
 <template>
-  <div 
-    class="datatable-group-header"
-    :class="{ 'active': expanded }"
-    :style="styles"
-    @click="toggleExpandGroup"
-  >
-     <a 
-       href="#" 
-       @click.prevent 
-       :class="expanded ? 'datatable-icon-down' : 'datatable-icon-right'"
-     >
-     </a>
-     <slot name="groupHeader" :group="group" :expanded="expanded" :level="group.level">
-        <span class="datatable-group-header-content">
-           <b>{{ groupTitle }}</b>
-        </span>
-     </slot>
+  <div class="datatable-group-header" :class="{ active: expanded }" :style="styles" @click="toggleExpandGroup">
+    <a href="#" @click.prevent :class="expanded ? 'datatable-icon-down' : 'datatable-icon-right'"> </a>
+    <slot name="groupHeader" :group="group" :expanded="expanded" :level="group.level">
+      <span class="datatable-group-header-content">
+        <b>{{ groupTitle }}</b>
+      </span>
+    </slot>
   </div>
 </template>
 
@@ -58,7 +48,7 @@ const styles = computed(() => ({
   background: #f5f5f5;
   cursor: pointer;
   box-sizing: border-box;
-  
+
   a {
     text-decoration: none;
     color: inherit;

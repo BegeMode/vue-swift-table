@@ -6,38 +6,38 @@ export default defineComponent({
   props: {
     column: {
       type: Object,
-      required: true
+      required: true,
     },
     row: {
       type: Object,
-      required: true
+      required: true,
     },
     value: {
-        type: [String, Number, Boolean, Object, Array] as any,
-        default: null
+      type: [String, Number, Boolean, Object, Array] as any,
+      default: null,
     },
     expanded: {
-        type: Boolean,
-        default: false
-    }
+      type: Boolean,
+      default: false,
+    },
   },
   setup(props) {
     const tableSlots = inject<Slots>('dataTableSlots');
 
     return () => {
-        const slotName = `col-${props.column.prop || props.column.$$id}`;
-        
-        if (tableSlots && tableSlots[slotName]) {
-            return tableSlots[slotName]!({
-                row: props.row,
-                column: props.column,
-                value: props.value,
-                expanded: props.expanded
-            });
-        }
+      const slotName = `col-${props.column.prop || props.column.$$id}`;
 
-        // Default rendering
-        return h('span', props.value);
+      if (tableSlots && tableSlots[slotName]) {
+        return tableSlots[slotName]!({
+          row: props.row,
+          column: props.column,
+          value: props.value,
+          expanded: props.expanded,
+        });
+      }
+
+      // Default rendering
+      return h('span', props.value);
     };
-  }
+  },
 });

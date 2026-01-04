@@ -31,7 +31,7 @@ const props = withDefaults(defineProps<Props>(), {
   selected: () => [],
   summaryHeight: 30,
   expanded: () => [],
-  rowDetailHeight: 0
+  rowDetailHeight: 0,
 });
 
 const emit = defineEmits(['scroll', 'update:scrollTop', 'row-select', 'activate', 'group-toggle']);
@@ -47,14 +47,14 @@ let resizeObserver: ResizeObserver | null = null;
 onMounted(() => {
   if (scroller.value) {
     viewportHeight.value = scroller.value.clientHeight;
-    
-    resizeObserver = new ResizeObserver((entries) => {
+
+    resizeObserver = new ResizeObserver(entries => {
       for (const entry of entries) {
         viewportHeight.value = entry.contentRect.height;
       }
     });
     resizeObserver.observe(scroller.value);
-    
+
     scroller.value.addEventListener('scroll', onScroll, { passive: true });
   }
 });
@@ -84,7 +84,7 @@ const expandedIndices = computed(() => {
 
 const getRowTop = (index: number) => {
   if (expandedIndices.value.length === 0) return index * props.rowHeight;
-  
+
   // Binary search count of expanded before index
 
   let left = 0;
@@ -152,7 +152,7 @@ const visibleRows = computed(() => {
   const res = [];
   for (let i = start; i < end; i++) {
     const row = props.rows[i];
-    // Optimized: getRowTop does binary search. 
+    // Optimized: getRowTop does binary search.
     // Optimization: we could incrementally calculate if we knew previous top.
     // But for <50 items, N*LogM is fine.
     const top = getRowTop(i);
@@ -160,7 +160,7 @@ const visibleRows = computed(() => {
       row,
       rowIndex: i,
       offsetY: top,
-      expanded: expandSet.has(i)
+      expanded: expandSet.has(i),
     });
   }
   return res;
@@ -171,79 +171,79 @@ const scrollerStyle = computed<CSSProperties>(() => ({
   height: '100%',
   overflowY: 'auto',
   overflowX: 'auto',
-  position: 'relative'
+  position: 'relative',
 }));
 
 const contentStyle = computed<CSSProperties>(() => ({
   height: `${totalHeight.value + (props.summaryRow ? props.summaryHeight : 0)}px`,
   width: props.innerWidth ? `${props.innerWidth}px` : '100%',
-  position: 'relative'
+  position: 'relative',
 }));
 
 const rowOffset = computed(() => {
-    if (props.summaryRow && props.summaryPosition === 'top') {
-        return props.summaryHeight;
-    }
-    return 0;
+  if (props.summaryRow && props.summaryPosition === 'top') {
+    return props.summaryHeight;
+  }
+  return 0;
 });
-
 </script>
 
 <template>
-  <div 
-    class="datatable-body" 
-    ref="scroller" 
-    :style="scrollerStyle"
-  >
+  <div class="datatable-body" ref="scroller" :style="scrollerStyle">
     <div :style="contentStyle" class="datatable-scroll">
-       <DataTableSummaryRow 
-         v-if="summaryRow && summaryPosition === 'top'"
-         :rows="rows"
-         :columns="columns"
-         :columnStyles="columnStyles"
-         :rowHeight="summaryHeight"
-         style="position: sticky; top: 0; z-index: 10;"
-       />
+      <DataTableSummaryRow
+        v-if="summaryRow && summaryPosition === 'top'"
+        :rows="rows"
+        :columns="columns"
+        :columnStyles="columnStyles"
+        :rowHeight="summaryHeight"
+        style="position: sticky; top: 0; z-index: 10"
+      />
 
-       <template v-for="item in visibleRows" :key="item.rowIndex">
-         <DataTableGroupHeader
-           v-if="item.row.__isGroup"
-           :group="item.row"
-           :expanded="item.row.expanded"
-           :rowHeight="rowHeight"
-           :style="{ transform: `translateY(${item.offsetY}px)`, position: 'absolute', width: '100%', top: `${rowOffset}px` }"
-           @toggle="emit('group-toggle', $event)"
-         />
-         <DataTableRow
-           v-else
-           :row="item.row"
-           :rowIndex="item.rowIndex"
-           :columns="columns"
-           :columnStyles="columnStyles"
-           :rowHeight="rowHeight"
-           :rowDetailHeight="rowDetailHeight"
-           :expanded="item.expanded"
-           :offsetY="item.offsetY"
-           :isSelected="selected?.includes(item.row)"
-           :selectionType="selectionType"
-           :style="{ top: `${rowOffset}px` }"
-           @select="emit('row-select', { row: item.row, event: $event })"
-           @activate="emit('activate', { row: item.row, event: $event })"
-         >
-            <template #detail>
-                <slot name="rowDetail" :row="item.row"></slot>
-            </template>
-         </DataTableRow>
-       </template>
+      <template v-for="item in visibleRows" :key="item.rowIndex">
+        <DataTableGroupHeader
+          v-if="item.row.__isGroup"
+          :group="item.row"
+          :expanded="item.row.expanded"
+          :rowHeight="rowHeight"
+          :style="{
+            transform: `translateY(${item.offsetY}px)`,
+            position: 'absolute',
+            width: '100%',
+            top: `${rowOffset}px`,
+          }"
+          @toggle="emit('group-toggle', $event)"
+        />
+        <DataTableRow
+          v-else
+          :row="item.row"
+          :rowIndex="item.rowIndex"
+          :columns="columns"
+          :columnStyles="columnStyles"
+          :rowHeight="rowHeight"
+          :rowDetailHeight="rowDetailHeight"
+          :expanded="item.expanded"
+          :offsetY="item.offsetY"
+          :isSelected="selected?.includes(item.row)"
+          :selectionType="selectionType"
+          :style="{ top: `${rowOffset}px` }"
+          @select="emit('row-select', { row: item.row, event: $event })"
+          @activate="emit('activate', { row: item.row, event: $event })"
+        >
+          <template #detail>
+            <slot name="rowDetail" :row="item.row"></slot>
+          </template>
+        </DataTableRow>
+      </template>
 
-       <DataTableSummaryRow 
-         v-if="summaryRow && summaryPosition === 'bottom'"
-         :rows="rows"
-         :columns="columns"
-         :columnStyles="columnStyles"
-         :rowHeight="summaryHeight"
-         :style="{ position: 'sticky', bottom: 0, zIndex: 10, marginTop: `${totalHeight}px` }"
-       />
+      <DataTableSummaryRow
+        v-if="summaryRow && summaryPosition === 'bottom'"
+        :rows="rows"
+        :columns="columns"
+        :columnStyles="columnStyles"
+        :rowHeight="summaryHeight"
+        :style="{ position: 'sticky', bottom: 0, zIndex: 10, marginTop: `${totalHeight}px` }"
+      />
     </div>
   </div>
 </template>

@@ -18,7 +18,9 @@ That's all.
 
 // common datatable colors
 $ngx-datatable-background: #fff !default;
-$ngx-datatable-box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2), 0 8px 10px 1px rgba(0, 0, 0, 0.14),
+$ngx-datatable-box-shadow:
+  0 5px 5px -3px rgba(0, 0, 0, 0.2),
+  0 8px 10px 1px rgba(0, 0, 0, 0.14),
   0 3px 14px 2px rgba(0, 0, 0, 0.12) !default;
 $ngx-datatable-row-odd-background: #eee !default;
 
@@ -236,9 +238,11 @@ $datatable-summary-row-background-hover: #ddd !default;
 
       &.longpress {
         .draggable::after {
-          transition: transform 400ms ease, opacity 400ms ease;
+          transition:
+            transform 400ms ease,
+            opacity 400ms ease;
           opacity: 0.5;
-          transform: scale(.8);
+          transform: scale(0.8);
         }
       }
 
@@ -459,51 +463,51 @@ $datatable-summary-row-background-hover: #ddd !default;
   }
   // Frozen columns
   .datatable-body-cell.frozen {
-      background-color: $ngx-datatable-default-background;
+    background-color: $ngx-datatable-default-background;
   }
-  
+
   .datatable-header-cell.frozen {
-      background-color: $datatable-header-cell-background;
-      z-index: 10;
+    background-color: $datatable-header-cell-background;
+    z-index: 10;
   }
-  
+
   .datatable-summary-cell.frozen {
-      background-color: $datatable-summary-row-background;
-      z-index: 10;
+    background-color: $datatable-summary-row-background;
+    z-index: 10;
   }
 
   &.striped .datatable-row-odd .datatable-body-cell.frozen {
-      background-color: $ngx-datatable-row-odd-background;
+    background-color: $ngx-datatable-row-odd-background;
   }
 
   // Active/Hover states overrides
   &.single-selection,
   &.multi-selection,
   &.multi-click-selection {
-      .datatable-body-row.active,
-      .datatable-body-row-wrapper.active .datatable-body-row {
-          .datatable-body-cell.frozen {
-            background-color: $ngx-datatable-selected-active-background;
-            color: $ngx-datatable-selected-active-color;
-          }
+    .datatable-body-row.active,
+    .datatable-body-row-wrapper.active .datatable-body-row {
+      .datatable-body-cell.frozen {
+        background-color: $ngx-datatable-selected-active-background;
+        color: $ngx-datatable-selected-active-color;
       }
+    }
 
-      .datatable-body-row.active:hover,
-      .datatable-body-row-wrapper.active:hover .datatable-body-row {
-          .datatable-body-cell.frozen {
-            background-color: $ngx-datatable-selected-active-background-hover;
-            color: $ngx-datatable-selected-active-color-hover;
-          }
+    .datatable-body-row.active:hover,
+    .datatable-body-row-wrapper.active:hover .datatable-body-row {
+      .datatable-body-cell.frozen {
+        background-color: $ngx-datatable-selected-active-background-hover;
+        color: $ngx-datatable-selected-active-color-hover;
       }
+    }
   }
 
   &:not(.cell-selection) {
-      .datatable-body-row:hover,
-      .datatable-body-row-wrapper:hover .datatable-body-row {
-          .datatable-body-cell.frozen {
-             background-color: $ngx-datatable-default-background-hover; 
-          }
+    .datatable-body-row:hover,
+    .datatable-body-row-wrapper:hover .datatable-body-row {
+      .datatable-body-cell.frozen {
+        background-color: $ngx-datatable-default-background-hover;
       }
+    }
   }
 }
 

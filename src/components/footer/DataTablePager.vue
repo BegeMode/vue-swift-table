@@ -6,10 +6,10 @@ interface Props {
   pagerRightArrowIcon?: string;
   pagerPreviousIcon?: string;
   pagerNextIcon?: string;
-  
-  page?: number;        // Current page, 1-based
-  size?: number;        // Rows per page
-  count?: number;       // Total rows
+
+  page?: number; // Current page, 1-based
+  size?: number; // Rows per page
+  count?: number; // Total rows
   pagerComponent?: any; // Custom pager component
 }
 
@@ -20,7 +20,7 @@ const props = withDefaults(defineProps<Props>(), {
   pagerLeftArrowIcon: 'datatable-icon-left',
   pagerRightArrowIcon: 'datatable-icon-right',
   pagerPreviousIcon: 'datatable-icon-prev',
-  pagerNextIcon: 'datatable-icon-skip'
+  pagerNextIcon: 'datatable-icon-skip',
 });
 
 const emit = defineEmits(['change']);
@@ -38,7 +38,7 @@ const pages = computed(() => {
   const cur = page.value;
   const total = totalPages.value;
   const max = 5;
-  
+
   if (total <= max) {
     return Array.from({ length: total }, (_, i) => i + 1);
   }
@@ -53,7 +53,7 @@ const pages = computed(() => {
     end = total;
     start = Math.max(end - max + 1, 1);
   }
-  
+
   // Adjust if we are near ends to keep 5 items if possible
   if (end - start + 1 < max) {
     if (start === 1) {
@@ -62,7 +62,7 @@ const pages = computed(() => {
       start = Math.max(end - max + 1, 1);
     }
   }
-  
+
   const p = [];
   for (let i = start; i <= end; i++) {
     p.push(i);
@@ -91,11 +91,7 @@ const selectPage = (p: number) => {
         <i :class="pagerLeftArrowIcon"></i>
       </a>
     </li>
-    <li 
-      v-for="pg in pages" 
-      :key="pg" 
-      :class="{ active: pg === page }"
-    >
+    <li v-for="pg in pages" :key="pg" :class="{ active: pg === page }">
       <a role="button" @click.prevent="selectPage(pg)">
         {{ pg }}
       </a>

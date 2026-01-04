@@ -12,7 +12,7 @@ const generateData = (count: number) => {
     age: 20 + (i % 50),
     email: `user${i}@example.com`,
     company: `Company ${i % 10}`,
-    address: `Address ${i} Street`
+    address: `Address ${i} Street`,
   }));
 };
 
@@ -43,25 +43,25 @@ const onPage = (event: any) => {
 const columns = ref<TableColumn[]>([
   { prop: 'id', name: 'ID', width: 80, resizeable: true, sortable: true },
   { prop: 'name', name: 'Name', width: 200, resizeable: true, sortable: true },
-  { 
-    prop: 'age', 
-    name: 'Age', 
-    width: 100, 
-    resizeable: true, 
+  {
+    prop: 'age',
+    name: 'Age',
+    width: 100,
+    resizeable: true,
     sortable: true,
     summaryFunc: (cells: unknown[]) => {
-       const nums = cells.filter(c => typeof c === 'number') as number[];
-       if (!nums.length) return 'Avg 0';
-       const sum = nums.reduce((a, b) => a + b, 0);
-       return `Avg ${(sum / nums.length).toFixed(1)}`;
-    }
+      const nums = cells.filter(c => typeof c === 'number') as number[];
+      if (!nums.length) return 'Avg 0';
+      const sum = nums.reduce((a, b) => a + b, 0);
+      return `Avg ${(sum / nums.length).toFixed(1)}`;
+    },
   },
   { prop: 'email', name: 'Email', width: 250, resizeable: true, sortable: true },
   { prop: 'company', name: 'Company', width: 200, resizeable: true, sortable: true },
   { prop: 'address', name: 'Address', width: 300, resizeable: true, sortable: false },
 ]);
 
-const onSort = (event: Array<{ prop: string, dir: 'asc' | 'desc' }>) => {
+const onSort = (event: Array<{ prop: string; dir: 'asc' | 'desc' }>) => {
   console.log('Sort Event:', event);
 };
 
@@ -71,9 +71,11 @@ const onScroll = (_e: Event) => {
 
 const onReorder = (newColumns: TableColumn[]) => {
   columns.value = newColumns;
-  console.log('Columns reordered:', newColumns.map(c => c.name));
+  console.log(
+    'Columns reordered:',
+    newColumns.map(c => c.name)
+  );
 };
-
 </script>
 
 <template>
@@ -81,45 +83,41 @@ const onReorder = (newColumns: TableColumn[]) => {
     <div class="header-params">
       <h2>Basic Demo</h2>
       <div class="controls">
-         <label>Page Size: <input type="number" v-model="limit" /></label>
-         <label>Footer Height: <input type="number" v-model="footerHeight" /></label>
-         <label><input type="checkbox" v-model="externalPaging" /> Server-side Paging</label>
-         <div class="control-row">
-            <label>
-              Selection: 
-              <select v-model="selectionType">
-                  <option value="">None</option>
-                  <option value="single">Single</option>
-                  <option value="multi">Multi (Ctrl/Cmd)</option>
-                  <option value="multiClick">Multi Click</option>
-                  <option value="checkbox">Checkbox</option>
-              </select>
-            </label>
-            <label>
-              Theme:
-              <select v-model="theme">
-                  <option value="material">Material</option>
-                  <option value="dark">Dark</option>
-                  <option value="bootstrap">Bootstrap</option>
-              </select>
-            </label>
-         </div>
-         <span style="font-size: 0.9em">Selected: {{ selected.length }}</span>
-         <button @click="groupRowsBy = groupRowsBy.length ? [] : ['company']">
-            Toggle Grouping (Company)
-         </button>
-         <div class="control-row">
-             <label>
-                 <input type="checkbox" v-model="summaryRow"> Summary Row
-             </label>
-             <label>
-                 Summary Position:
-                 <select v-model="summaryPosition">
-                     <option value="top">Top</option>
-                     <option value="bottom">Bottom</option>
-                 </select>
-             </label>
-         </div>
+        <label>Page Size: <input type="number" v-model="limit" /></label>
+        <label>Footer Height: <input type="number" v-model="footerHeight" /></label>
+        <label><input type="checkbox" v-model="externalPaging" /> Server-side Paging</label>
+        <div class="control-row">
+          <label>
+            Selection:
+            <select v-model="selectionType">
+              <option value="">None</option>
+              <option value="single">Single</option>
+              <option value="multi">Multi (Ctrl/Cmd)</option>
+              <option value="multiClick">Multi Click</option>
+              <option value="checkbox">Checkbox</option>
+            </select>
+          </label>
+          <label>
+            Theme:
+            <select v-model="theme">
+              <option value="material">Material</option>
+              <option value="dark">Dark</option>
+              <option value="bootstrap">Bootstrap</option>
+            </select>
+          </label>
+        </div>
+        <span style="font-size: 0.9em">Selected: {{ selected.length }}</span>
+        <button @click="groupRowsBy = groupRowsBy.length ? [] : ['company']">Toggle Grouping (Company)</button>
+        <div class="control-row">
+          <label> <input type="checkbox" v-model="summaryRow" /> Summary Row </label>
+          <label>
+            Summary Position:
+            <select v-model="summaryPosition">
+              <option value="top">Top</option>
+              <option value="bottom">Bottom</option>
+            </select>
+          </label>
+        </div>
       </div>
     </div>
 
@@ -168,16 +166,16 @@ const onReorder = (newColumns: TableColumn[]) => {
   gap: 15px;
   align-items: center;
   font-size: 14px;
-  
+
   label {
-      display: flex;
-      align-items: center;
-      gap: 5px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
   }
-  
+
   .control-row {
-      display: flex;
-      gap: 10px;
+    display: flex;
+    gap: 10px;
   }
 }
 .table-wrapper {
@@ -187,6 +185,6 @@ const onReorder = (newColumns: TableColumn[]) => {
   background: white;
 }
 .dark-wrapper {
-    background: #1a1e28;
+  background: #1a1e28;
 }
 </style>

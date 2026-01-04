@@ -28,18 +28,15 @@
 Является точкой входа и контейнером состояния.
 
 - **Props:**
-
   - `rows`: Array<T> - данные.
   - `columns`: Array<Column> - конфигурация колонок.
   - `rowHeight`: Number - фиксированная высота строки (обязательно или со значением по умолчанию).
   - `headerHeight`: Number - высота хедера.
   - `footerHeight`: Number - высота футера.
   - `height`: String/Number - высота всей таблицы.
-
     - `loading`: Boolean - состояние загрузки данных.
 
     - **Layout & Styling:**
-
       - `columnMode`: String - режим распределения ширины колонок ('standard', 'flex', 'force').
       - `reorderable`: Boolean - разрешение на перетаскивание колонок.
       - `rowClass`: Function - функция для условных классов строки.
@@ -47,7 +44,6 @@
       - `messages`: Object - тексты для локализации (emptyMessage, totalMessage и т.д.).
 
     - **Paging & Scrolling:**
-
       - `pageSize`: Number - количество строк на странице.
       - `count`: Number - общее количество строк (для серверной пагинации).
       - `page`: Number (v-model) - текущая страница.
@@ -55,7 +51,6 @@
       - `externalSorting`: Boolean - сортировка управляется снаружи.
 
     - **Grouping & Tree:**
-
       - `groupRowsBy`: Array - поля для группировки строк.
       - `groupExpansionDefault`: Boolean - состояние развернутости групп по умолчанию.
       - `treeFromRelation`: String - поле родителя (для Tree View).
@@ -63,7 +58,6 @@
       - `lazyTree`: Boolean - ленивая загрузка дерева.
 
     - **Selection:**
-
       - `selectionType`: String - 'single', 'multi', 'checkbox', 'cell'.
       - `selected`: Array (v-model) - массив выбранных строк.
       - `rowIdentity`: Function - (важно!) функция для получения уникального ID строки (track-by).
@@ -76,7 +70,6 @@
     - **Virtualization**: В новой версии виртуализация включена по умолчанию.
 
 - **Events:**
-
   - `update:sort`: Изменение сортировки.
   - `sort`: Алиас для совместимости.
   - `scroll-end`: Событие достижения конца списка.

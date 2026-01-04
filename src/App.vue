@@ -2,10 +2,12 @@
 import { ref, shallowRef } from 'vue';
 import BasicDemo from './demos/BasicDemo.vue';
 import RowDetailDemo from './demos/RowDetailDemo.vue';
+import ColumnPinningDemo from './demos/ColumnPinningDemo.vue';
 
 const tabs = [
   { name: 'Basic Features', component: BasicDemo },
   { name: 'Row Detail & Responsive', component: RowDetailDemo },
+  { name: 'Column Pinning', component: ColumnPinningDemo },
 ];
 
 const currentTab = shallowRef(tabs[0]!.component);
@@ -25,8 +27,8 @@ const selectTab = (index: number) => {
         <h3>Vue Swift Table</h3>
       </div>
       <ul class="nav">
-        <li 
-          v-for="(tab, index) in tabs" 
+        <li
+          v-for="(tab, index) in tabs"
           :key="index"
           :class="{ active: activeIndex === index }"
           @click="selectTab(index)"
@@ -42,12 +44,12 @@ const selectTab = (index: number) => {
 </template>
 
 <style lang="scss">
-@import "./styles/index.scss";
+@import './styles/index.scss';
 
 body {
-    margin: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #f5f7fa;
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f5f7fa;
 }
 
 .app-shell {
@@ -68,7 +70,10 @@ body {
   .sidebar-header {
     padding: 20px;
     background: #1a252f;
-    h3 { margin: 0; color: #42b983; }
+    h3 {
+      margin: 0;
+      color: #42b983;
+    }
   }
 
   .nav {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import type { TableColumn } from '../../types/table-column.type';
-import type { SortType } from '../../types/sort.type';
+import { computed, ref, watch } from 'vue';
+import type { TableColumn } from '@/types/table-column.type';
+import type { SortType } from '@/types/sort.type';
 
 interface Props {
   columns: Array<TableColumn>;
@@ -13,17 +13,19 @@ interface Props {
   selectionType?: string;
   allRowsSelected?: boolean;
   reorderable?: boolean;
+  offsetX?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   reorderable: false,
+  offsetX: 0,
 });
 
 const emit = defineEmits(['sort', 'select-all', 'column-reorder']);
 
 const style = computed(() => ({
   height: `${props.headerHeight}px`,
-  width: '100%'
+  width: '100%',
 }));
 
 const onColumnClick = (column: TableColumn, event: MouseEvent) => {
@@ -35,8 +37,8 @@ const onColumnClick = (column: TableColumn, event: MouseEvent) => {
 const sortDir = (column: TableColumn) => {
   if (!props.sorts) return undefined;
   const sort = props.sorts.find(s => {
-      const prop = column.prop || column.$$id;
-      return s.prop === prop;
+    const prop = column.prop || column.$$id;
+    return s.prop === prop;
   });
   return sort ? sort.dir : undefined;
 };
@@ -59,14 +61,14 @@ let startWidth = 0;
 
 const onResizeStart = (column: TableColumn, event: MouseEvent) => {
   if (!column.resizeable) return;
-  
+
   event.preventDefault();
   event.stopPropagation();
-  
+
   resizingColumn = column;
   startX = event.pageX;
   startWidth = column.width || 150;
-  
+
   document.addEventListener('mousemove', onResizeMove);
   document.addEventListener('mouseup', onResizeEnd);
   document.body.style.cursor = 'ew-resize';
@@ -75,27 +77,27 @@ const onResizeStart = (column: TableColumn, event: MouseEvent) => {
 
 const onResizeMove = (event: MouseEvent) => {
   if (!resizingColumn) return;
-  
+
   const diff = event.pageX - startX;
   const newWidth = Math.max(30, startWidth + diff); // Min width 30
-  
+
   if (resizingColumn.maxWidth && newWidth > resizingColumn.maxWidth) {
-      resizingColumn.width = resizingColumn.maxWidth;
+    resizingColumn.width = resizingColumn.maxWidth;
   } else if (resizingColumn.minWidth && newWidth < resizingColumn.minWidth) {
-      resizingColumn.width = resizingColumn.minWidth;
+    resizingColumn.width = resizingColumn.minWidth;
   } else {
-      resizingColumn.width = newWidth;
+    resizingColumn.width = newWidth;
   }
 };
 
 const onResizeEnd = () => {
   if (!resizingColumn) return;
-  
+
   document.removeEventListener('mousemove', onResizeMove);
   document.removeEventListener('mouseup', onResizeEnd);
   document.body.style.cursor = '';
   document.body.style.userSelect = '';
-  
+
   resizingColumn = null;
 };
 
@@ -106,96 +108,104 @@ const dragTarget = ref<string | null>(null);
 
 const onDragStart = (event: DragEvent, column: TableColumn) => {
   if (!props.reorderable) return;
-  
+
   // Set data to identify the dragged column
-  if(event.dataTransfer) {
-      event.dataTransfer.effectAllowed = 'move';
-      event.dataTransfer.setData('text/plain', JSON.stringify(column));
-      // Optional: Set drag image if needed
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', JSON.stringify(column));
+    // Optional: Set drag image if needed
   }
 };
 
 const onDragOver = (event: DragEvent, targetColumn: TableColumn) => {
-    if (!props.reorderable) return;
-    
-    // Allow drop
-    event.preventDefault();
-    
-    if (event.dataTransfer) {
-        event.dataTransfer.dropEffect = 'move';
-    }
-    
-    // Determine drop position (left or right of target) logic could go here
-    // For now simple target highlighting
-    const targetId = targetColumn.$$id || targetColumn.prop;
-    if (targetId)
-        dragTarget.value = String(targetId);
+  if (!props.reorderable) return;
+
+  // Allow drop
+  event.preventDefault();
+
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move';
+  }
+
+  // Determine drop position (left or right of target) logic could go here
+  // For now simple target highlighting
+  const targetId = targetColumn.$$id || targetColumn.prop;
+  if (targetId) dragTarget.value = String(targetId);
 };
 
 const onDragLeave = (_event: DragEvent) => {
-    // We might need better logic to only clear if actually leaving the cell
-    // dragTarget.value = null; 
+  // We might need better logic to only clear if actually leaving the cell
+  // dragTarget.value = null;
 };
 
 const onDrop = (event: DragEvent, targetColumn: TableColumn) => {
-    if (!props.reorderable) return;
-    event.preventDefault();
-    dragTarget.value = null;
-    
-    if(event.dataTransfer) {
-        const sourceJson = event.dataTransfer.getData('text/plain');
-        if (sourceJson) {
-            try {
-                const sourceColumn = JSON.parse(sourceJson) as TableColumn;
-                
-                // Identify source and target by prop or id
-                const sourceId = sourceColumn.$$id || sourceColumn.prop;
-                const targetId = targetColumn.$$id || targetColumn.prop;
-                
-                if (sourceId !== targetId) {
-                    emit('column-reorder', {
-                       source: sourceColumn,
-                       target: targetColumn
-                    });
-                }
-            } catch (e) {
-                console.error('Failed to parse dropped column data', e);
-            }
+  if (!props.reorderable) return;
+  event.preventDefault();
+  dragTarget.value = null;
+
+  if (event.dataTransfer) {
+    const sourceJson = event.dataTransfer.getData('text/plain');
+    if (sourceJson) {
+      try {
+        const sourceColumn = JSON.parse(sourceJson) as TableColumn;
+
+        // Identify source and target by prop or id
+        const sourceId = sourceColumn.$$id || sourceColumn.prop;
+        const targetId = targetColumn.$$id || targetColumn.prop;
+
+        if (sourceId !== targetId) {
+          emit('column-reorder', {
+            source: sourceColumn,
+            target: targetColumn,
+          });
         }
+      } catch (e) {
+        console.error('Failed to parse dropped column data', e);
+      }
     }
+  }
 };
 
+const headerEl = ref<HTMLElement | null>(null);
+
+watch(
+  () => props.offsetX,
+  val => {
+    if (headerEl.value) {
+      headerEl.value.scrollLeft = val;
+    }
+  }
+);
 </script>
 
 <template>
-  <div class="datatable-header" :style="style">
+  <div ref="headerEl" class="datatable-header" :style="style">
     <div class="datatable-header-inner" :style="{ width: innerWidth ? innerWidth + 'px' : '100%' }">
-      <div 
-        v-if="selectionType === 'checkbox'" 
+      <div
+        v-if="selectionType === 'checkbox'"
         class="datatable-header-cell datatable-checkbox-cell"
         :style="{ width: '30px' }"
       >
         <label>
-          <input 
-            type="checkbox" 
-            :checked="allRowsSelected" 
-            @change="emit('select-all')" 
-          />
+          <input type="checkbox" :checked="allRowsSelected" @change="emit('select-all')" />
         </label>
       </div>
-      <div 
-        v-for="col in columns" 
+      <div
+        v-for="col in columns"
         :key="col.$$id || col.prop"
         class="datatable-header-cell"
         :class="[
-            col.headerClass, 
-            { 
-                resizeable: col.resizeable,
-                'drag-target': dragTarget === (col.$$id || col.prop),
-                'frozen': col.frozenLeft || col.frozenRight 
-            }
+          col.headerClass,
+          {
+            resizeable: col.resizeable,
+            'drag-target': dragTarget === (col.$$id || col.prop),
+            frozen: col.frozenLeft || col.frozenRight,
+          },
         ]"
-        :style="{ width: col.width ? col.width + 'px' : '150px', ...(columnStyles?.[col.$$id || col.prop || ''] || {}) }"
+        :style="{
+          width: col.width ? col.width + 'px' : '150px',
+          ...(columnStyles?.[col.$$id || col.prop || ''] || {}),
+        }"
         :draggable="reorderable"
         @click="onColumnClick(col, $event)"
         @dragstart="onDragStart($event, col)"
@@ -203,27 +213,31 @@ const onDrop = (event: DragEvent, targetColumn: TableColumn) => {
         @dragleave="onDragLeave($event)"
         @drop="onDrop($event, col)"
       >
-        <span class="datatable-header-cell-label" :class="{ draggable: reorderable }" @click="onColumnClick(col, $event)">
-            {{ col.name || col.prop }}
-            <span 
-              v-if="col.sortable !== false && sortDir(col)" 
-              class="sort-btn"
-              :class="{
-                'datatable-icon-up': sortDir(col) === 'asc',
-                'datatable-icon-down': sortDir(col) === 'desc'
-              }"
-            >
-            </span>
-            <span v-if="sortOrder(col)" class="sort-priority">
-                {{ sortOrder(col) }}
-            </span>
+        <span
+          class="datatable-header-cell-label"
+          :class="{ draggable: reorderable }"
+          @click="onColumnClick(col, $event)"
+        >
+          {{ col.name || col.prop }}
+          <span
+            v-if="col.sortable !== false && sortDir(col)"
+            class="sort-btn"
+            :class="{
+              'datatable-icon-up': sortDir(col) === 'asc',
+              'datatable-icon-down': sortDir(col) === 'desc',
+            }"
+          >
+          </span>
+          <span v-if="sortOrder(col)" class="sort-priority">
+            {{ sortOrder(col) }}
+          </span>
         </span>
-        <span 
-            v-if="col.resizeable !== false"
-            class="resize-handle" 
-            @mousedown="onResizeStart(col, $event)"
-            @click.stop
-            @dragstart.stop.prevent
+        <span
+          v-if="col.resizeable !== false"
+          class="resize-handle"
+          @mousedown="onResizeStart(col, $event)"
+          @click.stop
+          @dragstart.stop.prevent
         ></span>
       </div>
     </div>
@@ -247,8 +261,8 @@ const onDrop = (event: DragEvent, targetColumn: TableColumn) => {
 }
 
 .datatable-header-cell.drag-target {
-    border-left: 2px solid var(--primary-color, #106cc8);
-    /* Or some other visual indicator */
+  border-left: 2px solid var(--primary-color, #106cc8);
+  /* Or some other visual indicator */
 }
 
 /* Resize Handle */
@@ -268,9 +282,9 @@ const onDrop = (event: DragEvent, targetColumn: TableColumn) => {
 }
 
 .sort-priority {
-    font-size: 0.8rem;
-    margin-left: 2px;
-    vertical-align: middle;
-    opacity: 0.8;
+  font-size: 0.8rem;
+  margin-left: 2px;
+  vertical-align: middle;
+  opacity: 0.8;
 }
 </style>

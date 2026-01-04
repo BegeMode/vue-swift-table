@@ -34,55 +34,46 @@ const style = computed(() => {
   }
 
   return {
-    height: `${props.rowHeight + (props.expanded ? (props.rowDetailHeight || 0) : 0)}px`,
+    height: `${props.rowHeight + (props.expanded ? props.rowDetailHeight || 0 : 0)}px`,
     width: '100%',
     position: 'absolute' as const,
-    transform: `translateY(${top}px)`
+    transform: `translateY(${top}px)`,
   };
 });
 </script>
 
 <template>
-  <div 
-    class="datatable-body-row-wrapper"
-    :class="{ 'active': isSelected }"
-    :style="style"
-    @click="onRowClick"
-  >
+  <div class="datatable-body-row-wrapper" :class="{ active: isSelected }" :style="style" @click="onRowClick">
     <div class="datatable-body-row" :style="{ height: `${rowHeight}px` }">
-        <div class="datatable-row-center datatable-row-group">
-        <div 
-            v-if="selectionType === 'checkbox'"
-            class="datatable-body-cell datatable-checkbox-cell"
-            :style="{ width: '30px', minWidth: '30px', maxWidth: '30px' }"
+      <div class="datatable-row-center datatable-row-group">
+        <div
+          v-if="selectionType === 'checkbox'"
+          class="datatable-body-cell datatable-checkbox-cell"
+          :style="{ width: '30px', minWidth: '30px', maxWidth: '30px' }"
         >
-            <div class="datatable-body-cell-label">
-                <label>
-                <input 
-                    type="checkbox" 
-                    :checked="isSelected" 
-                    @click.stop="onRowClick($event)"
-                />
-                </label>
-            </div>
+          <div class="datatable-body-cell-label">
+            <label>
+              <input type="checkbox" :checked="isSelected" @click.stop="onRowClick($event)" />
+            </label>
+          </div>
         </div>
         <DataTableBodyCell
-            v-for="(col, index) in columns"
-            :key="col.$$id || col.prop || index"
-            :class="{ 'frozen': col.frozenLeft || col.frozenRight }"
-            :column="col"
-            :row="row"
-            :expanded="expanded"
-            :style="columnStyles?.[col.$$id || col.prop || ''] || {}"
+          v-for="(col, index) in columns"
+          :key="col.$$id || col.prop || index"
+          :class="{ frozen: col.frozenLeft || col.frozenRight }"
+          :column="col"
+          :row="row"
+          :expanded="expanded"
+          :style="columnStyles?.[col.$$id || col.prop || ''] || {}"
         />
-        </div>
+      </div>
     </div>
-    <div 
-       v-if="expanded && rowDetailHeight" 
-       class="datatable-row-detail"
-       :style="{ height: `${rowDetailHeight}px`, width: '100%' }"
+    <div
+      v-if="expanded && rowDetailHeight"
+      class="datatable-row-detail"
+      :style="{ height: `${rowDetailHeight}px`, width: '100%' }"
     >
-       <slot name="detail"></slot>
+      <slot name="detail"></slot>
     </div>
   </div>
 </template>

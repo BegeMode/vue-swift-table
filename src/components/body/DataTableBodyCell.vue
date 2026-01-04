@@ -21,22 +21,16 @@ const value = computed(() => {
 });
 
 const style = computed(() => ({
-  width: props.column.width ? `${props.column.width}px` : '150px', 
+  width: props.column.width ? `${props.column.width}px` : '150px',
   minWidth: props.column.minWidth ? `${props.column.minWidth}px` : undefined,
   maxWidth: props.column.maxWidth ? `${props.column.maxWidth}px` : undefined,
 }));
-
 </script>
 
 <template>
   <div class="datatable-body-cell" :class="column.cellClass" :style="style">
     <div class="datatable-body-cell-label">
-      <CellSlotRenderer 
-         :column="column"
-         :row="row"
-         :value="value"
-         :expanded="expanded"
-      />
+      <CellSlotRenderer :column="column" :row="row" :value="value" :expanded="expanded" />
     </div>
   </div>
 </template>
@@ -53,8 +47,8 @@ const style = computed(() => ({
   white-space: nowrap;
 }
 .datatable-body-cell-label {
-    width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>

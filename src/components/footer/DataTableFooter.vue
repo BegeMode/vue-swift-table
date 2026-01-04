@@ -10,7 +10,7 @@ interface Props {
   totalMessage?: string;
   selectedMessage?: string | boolean;
   selectedCount?: number;
-  
+
   pagerLeftArrowIcon?: string;
   pagerRightArrowIcon?: string;
   pagerPreviousIcon?: string;
@@ -24,7 +24,7 @@ const props = withDefaults(defineProps<Props>(), {
   footerHeight: 0,
   totalMessage: 'total',
   selectedMessage: false,
-  selectedCount: 0
+  selectedCount: 0,
 });
 
 const emit = defineEmits(['page']);
@@ -35,14 +35,14 @@ const onPageChange = ({ page }: { page: number }) => {
   emit('page', {
     offset: page - 1,
     limit: props.pageSize,
-    count: props.rowCount
+    count: props.rowCount,
   });
 };
 
 const curPageText = computed(() => {
   const { rowCount, pageSize, offset } = props;
   if (!rowCount) return `0 ${props.totalMessage}`;
-  
+
   const start = offset * pageSize + 1;
   const end = Math.min((offset + 1) * pageSize, rowCount);
   return `${start} - ${end} of ${rowCount} ${props.totalMessage}`;
@@ -50,15 +50,10 @@ const curPageText = computed(() => {
 </script>
 
 <template>
-  <div 
-    class="datatable-footer" 
-    :style="{ height: footerHeight + 'px' }"
-  >
+  <div class="datatable-footer" :style="{ height: footerHeight + 'px' }">
     <div class="datatable-footer-inner" :class="{ 'selected-count': selectedMessage }">
       <div v-if="selectedMessage" class="page-count">
-        <span v-if="selectedCount">
-          {{ selectedCount }} {{ selectedMessage }} / 
-        </span>
+        <span v-if="selectedCount"> {{ selectedCount }} {{ selectedMessage }} / </span>
         {{ curPageText }}
       </div>
       <div v-else class="page-count">

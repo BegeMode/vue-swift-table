@@ -2,7 +2,8 @@
 import { camelCase } from './camel-case';
 
 const cache: Record<string, string> = {};
-const testStyle: CSSStyleDeclaration | undefined = typeof document !== 'undefined' ? document.createElement('div').style : undefined;
+const testStyle: CSSStyleDeclaration | undefined =
+  typeof document !== 'undefined' ? document.createElement('div').style : undefined;
 
 // Get Prefix
 // http://davidwalsh.name/vendor-prefix

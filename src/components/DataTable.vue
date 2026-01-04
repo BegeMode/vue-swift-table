@@ -21,7 +21,7 @@ interface Props {
   footerHeight?: number;
   height?: string | number;
   loading?: boolean;
-  
+
   // Layout & Styling
   columnMode?: 'standard' | 'flex' | 'force';
   reorderable?: boolean;
@@ -91,7 +91,7 @@ const props = withDefaults(defineProps<Props>(), {
     emptyMessage: 'No data to display',
     totalMessage: 'total',
     selectedMessage: 'selected',
-  })
+  }),
 });
 
 const emit = defineEmits([
@@ -108,7 +108,7 @@ const emit = defineEmits([
   'update:selected',
   'scroll',
   'reorder',
-  'detail-toggle'
+  'detail-toggle',
 ]);
 
 // ------------------------------------------------------------------
@@ -125,12 +125,12 @@ const toggleExpandDetail = (row: any) => {
   }
   emit('detail-toggle', {
     rows: expandedRows.value,
-    value: row
+    value: row,
   });
 };
 
 defineExpose({
-  toggleExpandDetail
+  toggleExpandDetail,
 });
 
 // ------------------------------------------------------------------
@@ -138,81 +138,84 @@ defineExpose({
 // ------------------------------------------------------------------
 const internalSorts = ref<any[]>(props.sorts || []);
 
-watch(() => props.sorts, (val) => {
-  internalSorts.value = val || [];
-});
+watch(
+  () => props.sorts,
+  val => {
+    internalSorts.value = val || [];
+  }
+);
 
 const sortedRows = computed(() => {
-    if (props.externalSorting || !internalSorts.value.length) {
-        return props.rows;
+  if (props.externalSorting || !internalSorts.value.length) {
+    return props.rows;
+  }
+
+  const rows = [...props.rows];
+  return rows.sort((a, b) => {
+    for (const sort of internalSorts.value) {
+      const { prop, dir } = sort;
+      if (!prop) continue;
+
+      const valA = a[prop] as string | number;
+      const valB = b[prop] as string | number;
+
+      if (valA === valB) continue;
+
+      if (valA === undefined || valA === null) return 1;
+      if (valB === undefined || valB === null) return -1;
+
+      const comparison = valA > valB ? 1 : -1;
+      return dir === 'asc' ? comparison : -comparison;
     }
-
-    const rows = [...props.rows];
-    return rows.sort((a, b) => {
-        for (const sort of internalSorts.value) {
-            const { prop, dir } = sort;
-            if (!prop) continue;
-            
-            const valA = a[prop] as string | number; 
-            const valB = b[prop] as string | number;
-            
-            if (valA === valB) continue;
-            
-            if (valA === undefined || valA === null) return 1;
-            if (valB === undefined || valB === null) return -1;
-
-            const comparison = valA > valB ? 1 : -1;
-            return dir === 'asc' ? comparison : -comparison;
-        }
-        return 0;
-    });
+    return 0;
+  });
 });
 
-const onSort = (payload: { column: TableColumn, event?: MouseEvent }) => {
-    const { column, event } = payload;
-    const prop = column.prop || column.$$id;
-    
-    // If sortable is explicitly false, do nothing (should be handled by header usually)
-    if (!prop) return;
+const onSort = (payload: { column: TableColumn; event?: MouseEvent }) => {
+  const { column, event } = payload;
+  const prop = column.prop || column.$$id;
 
-    let newSorts = [...internalSorts.value];
-    const existingIdx = newSorts.findIndex(s => s.prop === prop);
-    const sortType = props.sortType || 'single';
-    const isMulti = sortType === 'multi';
-    const isShift = event?.shiftKey; // Check shift key
+  // If sortable is explicitly false, do nothing (should be handled by header usually)
+  if (!prop) return;
 
-    if (isMulti && isShift) {
-        // Multi-Sort (Additive) logic
-         if (existingIdx > -1) {
-             const currentDir = newSorts[existingIdx].dir;
-             if (currentDir === 'asc') {
-                 newSorts[existingIdx].dir = 'desc';
-             } else {
-                 // Remove from list
-                 newSorts.splice(existingIdx, 1);
-             }
-         } else {
-             // Add to end
-             newSorts.push({ prop, dir: 'asc' });
-         }
+  let newSorts = [...internalSorts.value];
+  const existingIdx = newSorts.findIndex(s => s.prop === prop);
+  const sortType = props.sortType || 'single';
+  const isMulti = sortType === 'multi';
+  const isShift = event?.shiftKey; // Check shift key
+
+  if (isMulti && isShift) {
+    // Multi-Sort (Additive) logic
+    if (existingIdx > -1) {
+      const currentDir = newSorts[existingIdx].dir;
+      if (currentDir === 'asc') {
+        newSorts[existingIdx].dir = 'desc';
+      } else {
+        // Remove from list
+        newSorts.splice(existingIdx, 1);
+      }
     } else {
-        // Single Sort logic (Replace)
-        if (existingIdx > -1) {
-             const currentDir = newSorts[existingIdx].dir;
-             if (currentDir === 'asc') {
-                 newSorts = [{ prop, dir: 'desc' }];
-             } else {
-                 newSorts = []; 
-             }
-        } else {
-            // New column
-            newSorts = [{ prop, dir: 'asc' }];
-        }
+      // Add to end
+      newSorts.push({ prop, dir: 'asc' });
     }
+  } else {
+    // Single Sort logic (Replace)
+    if (existingIdx > -1) {
+      const currentDir = newSorts[existingIdx].dir;
+      if (currentDir === 'asc') {
+        newSorts = [{ prop, dir: 'desc' }];
+      } else {
+        newSorts = [];
+      }
+    } else {
+      // New column
+      newSorts = [{ prop, dir: 'asc' }];
+    }
+  }
 
-    internalSorts.value = newSorts;
-    emit('sort', newSorts);
-    emit('update:sort', newSorts);
+  internalSorts.value = newSorts;
+  emit('sort', newSorts);
+  emit('update:sort', newSorts);
 };
 
 // ------------------------------------------------------------------
@@ -220,9 +223,12 @@ const onSort = (payload: { column: TableColumn, event?: MouseEvent }) => {
 // ------------------------------------------------------------------
 const internalOffset = ref(props.offset || 0);
 
-watch(() => props.offset, (val) => {
-  if (val !== undefined) internalOffset.value = val;
-});
+watch(
+  () => props.offset,
+  val => {
+    if (val !== undefined) internalOffset.value = val;
+  }
+);
 
 const pageSize = computed(() => {
   // If undefined, we show all rows (no paging)
@@ -236,24 +242,24 @@ const rowCount = computed(() => {
 
 const pagedRows = computed(() => {
   if (props.externalPaging) return props.rows;
-  
+
   // Grouping Paging
   if (props.groupRowsBy && props.groupRowsBy.length) {
-      if (!groupTree.value) return [];
-      
-      // If no page size, return full flat list
-      if (!pageSize.value) return groupedRows.value;
+    if (!groupTree.value) return [];
 
-      // Slice Groups (Top Level)
-      const start = internalOffset.value * pageSize.value;
-      const end = start + pageSize.value;
-      const pagedGroups = groupTree.value.slice(start, end);
-      return flattenGroups(pagedGroups);
+    // If no page size, return full flat list
+    if (!pageSize.value) return groupedRows.value;
+
+    // Slice Groups (Top Level)
+    const start = internalOffset.value * pageSize.value;
+    const end = start + pageSize.value;
+    const pagedGroups = groupTree.value.slice(start, end);
+    return flattenGroups(pagedGroups);
   }
 
   // Row Paging
   if (!pageSize.value) return sortedRows.value;
-  
+
   const start = internalOffset.value * pageSize.value;
   const end = start + pageSize.value;
   return sortedRows.value.slice(start, end);
@@ -269,22 +275,27 @@ const onPage = (event: { offset: number; limit: number; count: number }) => {
 // ------------------------------------------------------------------
 // Grouping Logic
 // ------------------------------------------------------------------
-const { groupedRows, groupTree, flattenGroups, onGroupToggle: onGroupToggleLogic } = useRowGrouping(
+const {
+  groupedRows,
+  groupTree,
+  flattenGroups,
+  onGroupToggle: onGroupToggleLogic,
+} = useRowGrouping(
   sortedRows, // Use sorted rows
   toRefs(props).groupRowsBy,
   toRefs(props).groupExpansionDefault
 );
 
 const onGroupToggle = (event: any) => {
-    // Event comes from Body/Header: { type: 'group', value: group }
-    // Or just group object?
-    // Vue 2 body-group-header emitted { type: 'group', value: this.group }
-    // Our DataTableGroupHeader emits user object.
-    // Let's assume the event payload IS the group object or { value: group }
-    // I'll check DataTableGroupHeader.vue: emit('toggle', props.group)
-    // So event is the group.
-    onGroupToggleLogic(event);
-    emit('group-toggle', event);
+  // Event comes from Body/Header: { type: 'group', value: group }
+  // Or just group object?
+  // Vue 2 body-group-header emitted { type: 'group', value: this.group }
+  // Our DataTableGroupHeader emits user object.
+  // Let's assume the event payload IS the group object or { value: group }
+  // I'll check DataTableGroupHeader.vue: emit('toggle', props.group)
+  // So event is the group.
+  onGroupToggleLogic(event);
+  emit('group-toggle', event);
 };
 
 // ------------------------------------------------------------------
@@ -293,9 +304,12 @@ const onGroupToggle = (event: any) => {
 const selectedState = ref<any[]>(props.selected || []);
 
 // Watch props selected to keep in sync if controlled externally
-watch(() => props.selected, (val) => {
-  selectedState.value = val || [];
-});
+watch(
+  () => props.selected,
+  val => {
+    selectedState.value = val || [];
+  }
+);
 
 const onRowSelect = ({ row, type: _type, event }: { row: any; type?: string; event?: MouseEvent }) => {
   if (!props.selectionType) return;
@@ -311,7 +325,7 @@ const onRowSelect = ({ row, type: _type, event }: { row: any; type?: string; eve
     const idx = selectedState.value.indexOf(r);
     // Note: If using rowIdentity, we should use that to find the index.
     // For now, assuming object reference equality or simple identity.
-    
+
     if (idx > -1) {
       selectedState.value.splice(idx, 1);
     } else {
@@ -334,21 +348,21 @@ const onRowSelect = ({ row, type: _type, event }: { row: any; type?: string; eve
   } else if (props.selectionType === 'checkbox') {
     toggle(row);
   }
-  
+
   emit('activate', { type: 'click', row, event });
 };
 
 const onSelectAll = () => {
-    // Basic implementation: Toggle all visible or all rows
-    // For now, let's select all rows if not all selected, otherwise clear.
-    const allSelected = selectedState.value.length === (props.count || props.rows.length);
-    if (allSelected) {
-        selectedState.value = [];
-    } else {
-        selectedState.value = [...props.rows];
-    }
-    emit('select', { selected: selectedState.value });
-    emit('update:selected', selectedState.value);
+  // Basic implementation: Toggle all visible or all rows
+  // For now, let's select all rows if not all selected, otherwise clear.
+  const allSelected = selectedState.value.length === (props.count || props.rows.length);
+  if (allSelected) {
+    selectedState.value = [];
+  } else {
+    selectedState.value = [...props.rows];
+  }
+  emit('select', { selected: selectedState.value });
+  emit('update:selected', selectedState.value);
 };
 
 // Computed classes for the root element
@@ -358,19 +372,19 @@ const componentClasses = computed(() => ({
   'fixed-header': true,
   'fixed-row': true,
   'scroll-vertical': true, // Virtualization implies vertical scrolling
-  'virtualized': true,
-  'selectable': !!props.selectionType,
+  virtualized: true,
+  selectable: !!props.selectionType,
   'checkbox-selection': props.selectionType === 'checkbox',
   'cell-selection': props.selectionType === 'cell',
   'single-selection': props.selectionType === 'single',
   'multi-selection': props.selectionType === 'multi',
-  'multi-click-selection': props.selectionType === 'multiClick'
+  'multi-click-selection': props.selectionType === 'multiClick',
 }));
 
 // Provide context if needed
 provide('dataTable', {
   props: toRefs(props),
-  emit
+  emit,
 });
 
 provide('dataTableSlots', useSlots());
@@ -378,26 +392,24 @@ provide('dataTableSlots', useSlots());
 provide('selection', {
   selected: selectedState,
   selectionType: toRefs(props).selectionType,
-  onRowSelect
+  onRowSelect,
 });
 
-const onColumnReorder = ({ source, target }: { source: TableColumn, target: TableColumn }) => {
-    // Find indices
-    const columns = [...props.columns];
-    const sourceIdx = columns.findIndex(c => (c.$$id || c.prop) === (source.$$id || source.prop));
-    const targetIdx = columns.findIndex(c => (c.$$id || c.prop) === (target.$$id || target.prop));
-    
-    if (sourceIdx > -1 && targetIdx > -1) {
-        // Move source to target index
-        const [movedColumn] = columns.splice(sourceIdx, 1);
-        if (movedColumn) {
-             columns.splice(targetIdx, 0, movedColumn);
-             emit('reorder', columns);
-        }
+const onColumnReorder = ({ source, target }: { source: TableColumn; target: TableColumn }) => {
+  // Find indices
+  const columns = [...props.columns];
+  const sourceIdx = columns.findIndex(c => (c.$$id || c.prop) === (source.$$id || source.prop));
+  const targetIdx = columns.findIndex(c => (c.$$id || c.prop) === (target.$$id || target.prop));
+
+  if (sourceIdx > -1 && targetIdx > -1) {
+    // Move source to target index
+    const [movedColumn] = columns.splice(sourceIdx, 1);
+    if (movedColumn) {
+      columns.splice(targetIdx, 0, movedColumn);
+      emit('reorder', columns);
     }
+  }
 };
-
-
 
 // ------------------------------------------------------------------
 // Column Pinning / Sticky Logic
@@ -416,47 +428,51 @@ const sortedColumns = computed(() => {
 const columnStyles = computed(() => {
   const styles: Record<string, CSSProperties> = {};
   if (!props.columns) return styles;
-  
+
   const { left, right } = columnsByPin(props.columns);
-  
+
   let leftOffset = 0;
   for (const col of left) {
     const id = col.$$id || col.prop || '';
     if (id) {
-       styles[String(id)] = {
-         position: 'sticky',
-         left: `${leftOffset}px`,
-         zIndex: 2
-       };
+      styles[String(id)] = {
+        position: 'sticky',
+        left: `${leftOffset}px`,
+        zIndex: 2,
+      };
     }
     const width = col.width || 150;
     leftOffset += width;
   }
-  
+
   let rightOffset = 0;
   // Right columns are sorted Left-to-Right in the 'right' array.
   // To stack them correctly on the right, we reverse iteration.
   // The last column in 'right' array is the right-most, so right: 0.
   // The second to last has right: width of last.
   for (let i = right.length - 1; i >= 0; i--) {
-     const col = right[i];
-     if (!col) continue;
-     const id = col.$$id || col.prop || '';
-     if (id) {
-       styles[String(id)] = {
-         position: 'sticky',
-         right: `${rightOffset}px`,
-         zIndex: 2
-       };
-     }
-     const width = col.width || 150;
-     rightOffset += width;
+    const col = right[i];
+    if (!col) continue;
+    const id = col.$$id || col.prop || '';
+    if (id) {
+      styles[String(id)] = {
+        position: 'sticky',
+        right: `${rightOffset}px`,
+        zIndex: 2,
+      };
+    }
+    const width = col.width || 150;
+    rightOffset += width;
   }
-  
+
   return styles;
 });
 
+const offsetX = ref(0);
+
 const onScroll = (e: Event) => {
+  const target = e.target as HTMLElement;
+  offsetX.value = target.scrollLeft;
   emit('scroll', e);
 };
 </script>
@@ -469,6 +485,7 @@ const onScroll = (e: Event) => {
         :columnStyles="columnStyles"
         :innerWidth="innerWidth"
         :headerHeight="headerHeight"
+        :offsetX="offsetX"
         :reorderable="reorderable"
         :sorts="internalSorts"
         :sortType="sortType"
@@ -485,7 +502,7 @@ const onScroll = (e: Event) => {
         :columns="sortedColumns"
         :columnStyles="columnStyles"
         :innerWidth="innerWidth"
-        :rowHeight="Number(rowHeight)" 
+        :rowHeight="Number(rowHeight)"
         :bodyHeight="height"
         :selected="selectedState"
         :selectionType="selectionType"
