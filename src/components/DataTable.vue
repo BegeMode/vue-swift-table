@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, provide, toRefs, ref, watch } from 'vue';
+import { computed, provide, toRefs, ref, watch, useSlots } from 'vue';
 import DataTableBody from './body/DataTableBody.vue';
 import DataTableHeader from './header/DataTableHeader.vue';
 import DataTableFooter from './footer/DataTableFooter.vue';
@@ -16,6 +16,7 @@ interface Props {
   rows: Array<Record<string, unknown>>;
   columns: Array<TableColumn>;
   rowHeight?: number | string; // Fixed height, mandatory or default
+  rowDetailHeight?: number; // Height of the detail row
   headerHeight?: number;
   footerHeight?: number;
   height?: string | number;
@@ -64,7 +65,7 @@ const props = withDefaults(defineProps<Props>(), {
   headerHeight: 50,
   footerHeight: 0,
   columnMode: 'standard',
-  reorderable: true,
+  reorderable: false,
   externalPaging: false,
   externalSorting: false,
   groupExpansionDefault: false,
@@ -104,8 +105,115 @@ const emit = defineEmits([
   'group-toggle',
   'update:selected',
   'scroll',
-  'reorder'
+  'update:selected',
+  'scroll',
+  'reorder',
+  'detail-toggle'
 ]);
+
+// ------------------------------------------------------------------
+// Row Detail Logic
+// ------------------------------------------------------------------
+const expandedRows = ref<any[]>([]);
+
+const toggleExpandDetail = (row: any) => {
+  const index = expandedRows.value.indexOf(row);
+  if (index === -1) {
+    expandedRows.value.push(row);
+  } else {
+    expandedRows.value.splice(index, 1);
+  }
+  emit('detail-toggle', {
+    rows: expandedRows.value,
+    value: row
+  });
+};
+
+defineExpose({
+  toggleExpandDetail
+});
+
+// ------------------------------------------------------------------
+// Sorting Logic
+// ------------------------------------------------------------------
+const internalSorts = ref<any[]>(props.sorts || []);
+
+watch(() => props.sorts, (val) => {
+  internalSorts.value = val || [];
+});
+
+const sortedRows = computed(() => {
+    if (props.externalSorting || !internalSorts.value.length) {
+        return props.rows;
+    }
+
+    const rows = [...props.rows];
+    return rows.sort((a, b) => {
+        for (const sort of internalSorts.value) {
+            const { prop, dir } = sort;
+            if (!prop) continue;
+            
+            const valA = a[prop] as string | number; 
+            const valB = b[prop] as string | number;
+            
+            if (valA === valB) continue;
+            
+            if (valA === undefined || valA === null) return 1;
+            if (valB === undefined || valB === null) return -1;
+
+            const comparison = valA > valB ? 1 : -1;
+            return dir === 'asc' ? comparison : -comparison;
+        }
+        return 0;
+    });
+});
+
+const onSort = (payload: { column: TableColumn, event?: MouseEvent }) => {
+    const { column, event } = payload;
+    const prop = column.prop || column.$$id;
+    
+    // If sortable is explicitly false, do nothing (should be handled by header usually)
+    if (!prop) return;
+
+    let newSorts = [...internalSorts.value];
+    const existingIdx = newSorts.findIndex(s => s.prop === prop);
+    const sortType = props.sortType || 'single';
+    const isMulti = sortType === 'multi';
+    const isShift = event?.shiftKey; // Check shift key
+
+    if (isMulti && isShift) {
+        // Multi-Sort (Additive) logic
+         if (existingIdx > -1) {
+             const currentDir = newSorts[existingIdx].dir;
+             if (currentDir === 'asc') {
+                 newSorts[existingIdx].dir = 'desc';
+             } else {
+                 // Remove from list
+                 newSorts.splice(existingIdx, 1);
+             }
+         } else {
+             // Add to end
+             newSorts.push({ prop, dir: 'asc' });
+         }
+    } else {
+        // Single Sort logic (Replace)
+        if (existingIdx > -1) {
+             const currentDir = newSorts[existingIdx].dir;
+             if (currentDir === 'asc') {
+                 newSorts = [{ prop, dir: 'desc' }];
+             } else {
+                 newSorts = []; 
+             }
+        } else {
+            // New column
+            newSorts = [{ prop, dir: 'asc' }];
+        }
+    }
+
+    internalSorts.value = newSorts;
+    emit('sort', newSorts);
+    emit('update:sort', newSorts);
+};
 
 // ------------------------------------------------------------------
 // Pagination Logic
@@ -144,11 +252,11 @@ const pagedRows = computed(() => {
   }
 
   // Row Paging
-  if (!pageSize.value) return props.rows;
+  if (!pageSize.value) return sortedRows.value;
   
   const start = internalOffset.value * pageSize.value;
   const end = start + pageSize.value;
-  return props.rows.slice(start, end);
+  return sortedRows.value.slice(start, end);
 });
 
 const onPage = (event: { offset: number; limit: number; count: number }) => {
@@ -162,7 +270,7 @@ const onPage = (event: { offset: number; limit: number; count: number }) => {
 // Grouping Logic
 // ------------------------------------------------------------------
 const { groupedRows, groupTree, flattenGroups, onGroupToggle: onGroupToggleLogic } = useRowGrouping(
-  toRefs(props).rows,
+  sortedRows, // Use sorted rows
   toRefs(props).groupRowsBy,
   toRefs(props).groupExpansionDefault
 );
@@ -265,7 +373,8 @@ provide('dataTable', {
   emit
 });
 
-// Provide Selection Context to Children
+provide('dataTableSlots', useSlots());
+
 provide('selection', {
   selected: selectedState,
   selectionType: toRefs(props).selectionType,
@@ -360,10 +469,12 @@ const onScroll = (e: Event) => {
         :columnStyles="columnStyles"
         :innerWidth="innerWidth"
         :headerHeight="headerHeight"
-        :sorts="sorts"
+        :reorderable="reorderable"
+        :sorts="internalSorts"
+        :sortType="sortType"
         :selectionType="selectionType"
         :allRowsSelected="selectedState.length === (props.count || props.rows.length) && props.rows.length > 0"
-        @sort="emit('sort', $event)"
+        @sort="onSort"
         @select-all="onSelectAll"
         @column-reorder="onColumnReorder"
       />
@@ -380,10 +491,16 @@ const onScroll = (e: Event) => {
         :selectionType="selectionType"
         :summaryRow="summaryRow"
         :summaryPosition="summaryPosition"
+        :expanded="expandedRows"
+        :rowDetailHeight="rowDetailHeight"
         @scroll="onScroll"
         @row-select="onRowSelect"
         @group-toggle="onGroupToggle"
-      />
+      >
+        <template #rowDetail="scope">
+          <slot name="rowDetail" v-bind="scope"></slot>
+        </template>
+      </DataTableBody>
 
       <!-- Footer Component will go here -->
       <DataTableFooter

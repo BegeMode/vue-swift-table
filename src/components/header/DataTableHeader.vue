@@ -16,7 +16,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  reorderable: true
+  reorderable: false,
 });
 
 const emit = defineEmits(['sort', 'select-all', 'column-reorder']);
@@ -26,10 +26,28 @@ const style = computed(() => ({
   width: '100%'
 }));
 
-const onColumnClick = (column: TableColumn) => {
-  if (column.sortable) {
-    emit('sort', { column });
+const onColumnClick = (column: TableColumn, event: MouseEvent) => {
+  if (column.sortable !== false) {
+    emit('sort', { column, event });
   }
+};
+
+const sortDir = (column: TableColumn) => {
+  if (!props.sorts) return undefined;
+  const sort = props.sorts.find(s => {
+      const prop = column.prop || column.$$id;
+      return s.prop === prop;
+  });
+  return sort ? sort.dir : undefined;
+};
+
+const sortOrder = (column: TableColumn) => {
+  if (!props.sorts || props.sorts.length === 1 || props.sortType !== 'multi') {
+    return undefined; // Only show for multi
+  }
+  const prop = column.prop || column.$$id;
+  const idx = props.sorts.findIndex(s => s.prop === prop);
+  return idx > -1 ? idx + 1 : undefined; // 1-based index
 };
 
 // ------------------------------------------------------------------
@@ -172,21 +190,33 @@ const onDrop = (event: DragEvent, targetColumn: TableColumn) => {
         :class="[
             col.headerClass, 
             { 
-                resizeable: col.resizeable !== false,
+                resizeable: col.resizeable,
                 'drag-target': dragTarget === (col.$$id || col.prop),
                 'frozen': col.frozenLeft || col.frozenRight 
             }
         ]"
         :style="{ width: col.width ? col.width + 'px' : '150px', ...(columnStyles?.[col.$$id || col.prop || ''] || {}) }"
         :draggable="reorderable"
-        @click="onColumnClick(col)"
+        @click="onColumnClick(col, $event)"
         @dragstart="onDragStart($event, col)"
         @dragover="onDragOver($event, col)"
         @dragleave="onDragLeave($event)"
         @drop="onDrop($event, col)"
       >
-        <span class="datatable-header-cell-label draggable">
+        <span class="datatable-header-cell-label" :class="{ draggable: reorderable }" @click="onColumnClick(col, $event)">
             {{ col.name || col.prop }}
+            <span 
+              v-if="col.sortable !== false && sortDir(col)" 
+              class="sort-btn"
+              :class="{
+                'datatable-icon-up': sortDir(col) === 'asc',
+                'datatable-icon-down': sortDir(col) === 'desc'
+              }"
+            >
+            </span>
+            <span v-if="sortOrder(col)" class="sort-priority">
+                {{ sortOrder(col) }}
+            </span>
         </span>
         <span 
             v-if="col.resizeable !== false"
@@ -235,5 +265,12 @@ const onDrop = (event: DragEvent, targetColumn: TableColumn) => {
 
 .resize-handle:hover {
   background-color: rgba(0, 0, 0, 0.1);
+}
+
+.sort-priority {
+    font-size: 0.8rem;
+    margin-left: 2px;
+    vertical-align: middle;
+    opacity: 0.8;
 }
 </style>

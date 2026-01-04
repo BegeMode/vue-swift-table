@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { TableColumn } from '../../types/table-column.type';
-// import { deepValueGetter } from '../../utils/column-prop-getters'; // simplify for now
+import CellSlotRenderer from './CellSlotRenderer';
 
 interface Props {
   row: Record<string, unknown>;
   column: TableColumn;
+  expanded?: boolean;
 }
 
 const props = defineProps<Props>();
@@ -14,14 +15,13 @@ const value = computed(() => {
   if (!props.column.prop) return '';
   const prop = props.column.prop;
   if (typeof prop === 'string') {
-    // Simple access for now, support deep generic later
     return props.row[prop];
   }
   return '';
 });
 
 const style = computed(() => ({
-  width: props.column.width ? `${props.column.width}px` : '150px', // Default width
+  width: props.column.width ? `${props.column.width}px` : '150px', 
   minWidth: props.column.minWidth ? `${props.column.minWidth}px` : undefined,
   maxWidth: props.column.maxWidth ? `${props.column.maxWidth}px` : undefined,
 }));
@@ -31,8 +31,12 @@ const style = computed(() => ({
 <template>
   <div class="datatable-body-cell" :class="column.cellClass" :style="style">
     <div class="datatable-body-cell-label">
-      <!-- TODO: Support cellTemplate or Slots -->
-      {{ value }}
+      <CellSlotRenderer 
+         :column="column"
+         :row="row"
+         :value="value"
+         :expanded="expanded"
+      />
     </div>
   </div>
 </template>
@@ -40,13 +44,17 @@ const style = computed(() => ({
 <style scoped>
 .datatable-body-cell {
   position: relative;
-  display: inline-block;
-  vertical-align: top;
+  display: flex;
+  align-items: center;
   height: 100%;
-  line-height: inherit; /* Inherit from row */
-  padding: 0.5rem;
+  padding: 0 0.5rem; /* Padding horizontal only usually, or keep 0.5rem if space needed */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.datatable-body-cell-label {
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 </style>

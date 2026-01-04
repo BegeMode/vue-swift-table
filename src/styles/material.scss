@@ -79,21 +79,34 @@ $datatable-summary-row-background-hover: #ddd !default;
   &.single-selection,
   &.multi-selection,
   &.multi-click-selection {
-    .datatable-body-row {
-      &.active,
-      &.active .datatable-row-group {
+    .datatable-body-row.active,
+    .datatable-body-row-wrapper.active .datatable-body-row {
+      background-color: $ngx-datatable-selected-active-background;
+      color: $ngx-datatable-selected-active-color;
+
+      .datatable-row-group {
         background-color: $ngx-datatable-selected-active-background;
         color: $ngx-datatable-selected-active-color;
       }
+    }
 
-      &.active:hover,
-      &.active:hover .datatable-row-group {
+    .datatable-body-row.active:hover,
+    .datatable-body-row-wrapper.active:hover .datatable-body-row {
+      background-color: $ngx-datatable-selected-active-background-hover;
+      color: $ngx-datatable-selected-active-color-hover;
+
+      .datatable-row-group {
         background-color: $ngx-datatable-selected-active-background-hover;
         color: $ngx-datatable-selected-active-color-hover;
       }
+    }
 
-      &.active:focus,
-      &.active:focus .datatable-row-group {
+    .datatable-body-row.active:focus,
+    .datatable-body-row-wrapper.active:focus .datatable-body-row {
+      background-color: $ngx-datatable-selected-active-background-focus;
+      color: $ngx-datatable-selected-active-color-focus;
+
+      .datatable-row-group {
         background-color: $ngx-datatable-selected-active-background-focus;
         color: $ngx-datatable-selected-active-color-focus;
       }
@@ -101,18 +114,27 @@ $datatable-summary-row-background-hover: #ddd !default;
   }
 
   &:not(.cell-selection) {
-    .datatable-body-row {
-      &:hover,
-      /*&:hover .datatable-row-group,*/ &:hover .datatable-row-group .datatable-tree-button {
-        background-color: $ngx-datatable-default-background-hover;
-        transition-property: background;
-        transition-duration: 0.3s;
-        transition-timing-function: linear;
-      }
+    .datatable-body-row:hover,
+    .datatable-body-row-wrapper:hover .datatable-body-row {
+      background-color: $ngx-datatable-default-background-hover;
+      // transition-property: background;
+      // transition-duration: 0.3s;
+      // transition-timing-function: linear;
 
-      &:focus,
-      &:focus .datatable-row-group,
-      &:focus .datatable-row-group .datatable-tree-button {
+      .datatable-row-group .datatable-tree-button {
+        background-color: $ngx-datatable-default-background-hover;
+        // transition-property: background;
+        // transition-duration: 0.3s;
+        // transition-timing-function: linear;
+      }
+    }
+
+    .datatable-body-row:focus,
+    .datatable-body-row-wrapper:focus .datatable-body-row {
+      background-color: $ngx-datatable-default-background-focus;
+
+      .datatable-row-group,
+      .datatable-row-group .datatable-tree-button {
         background-color: $ngx-datatable-default-background-focus;
       }
     }
@@ -123,9 +145,9 @@ $datatable-summary-row-background-hover: #ddd !default;
       &:hover,
       /*&:hover .datatable-row-group,*/ &:hover .datatable-row-group .datatable-tree-button {
         background-color: $ngx-datatable-cellselection-background-hover;
-        transition-property: background;
-        transition-duration: 0.3s;
-        transition-timing-function: linear;
+        // transition-property: background;
+        // transition-duration: 0.3s;
+        // transition-timing-function: linear;
       }
 
       &:focus,
@@ -200,7 +222,7 @@ $datatable-summary-row-background-hover: #ddd !default;
 
     .datatable-header-cell {
       text-align: left;
-      padding: 0.8rem 1.2rem;
+      padding: 0.8rem 1rem;
       font-weight: 400;
       background-color: $datatable-header-cell-background;
       color: $datatable-header-cell-color;
@@ -277,11 +299,11 @@ $datatable-summary-row-background-hover: #ddd !default;
     .datatable-body-row {
       .datatable-body-cell {
         text-align: left;
-        padding: 0.8rem 1.2rem;
+        padding: 0 1rem;
         vertical-align: top;
         border-top: 0;
         color: $datatable-body-cell-color;
-        transition: width 0.3s ease;
+        // transition: width 0.3s ease;
         font-size: 14px;
         font-weight: 400;
 
@@ -308,7 +330,7 @@ $datatable-summary-row-background-hover: #ddd !default;
 
       .datatable-body-group-cell {
         text-align: left;
-        padding: 0.8rem 1.2rem;
+        padding: 0.8rem 1rem;
         vertical-align: top;
         border-top: 0;
         color: $datatable-body-cell-color;
@@ -458,18 +480,30 @@ $datatable-summary-row-background-hover: #ddd !default;
   &.single-selection,
   &.multi-selection,
   &.multi-click-selection {
-    .datatable-body-row.active .datatable-body-cell.frozen {
-        background-color: $ngx-datatable-selected-active-background;
-        color: $ngx-datatable-selected-active-color;
-    }
-     .datatable-body-row.active:hover .datatable-body-cell.frozen {
-        background-color: $ngx-datatable-selected-active-background-hover;
-        color: $ngx-datatable-selected-active-color-hover;
-    }
+      .datatable-body-row.active,
+      .datatable-body-row-wrapper.active .datatable-body-row {
+          .datatable-body-cell.frozen {
+            background-color: $ngx-datatable-selected-active-background;
+            color: $ngx-datatable-selected-active-color;
+          }
+      }
+
+      .datatable-body-row.active:hover,
+      .datatable-body-row-wrapper.active:hover .datatable-body-row {
+          .datatable-body-cell.frozen {
+            background-color: $ngx-datatable-selected-active-background-hover;
+            color: $ngx-datatable-selected-active-color-hover;
+          }
+      }
   }
 
-  &:not(.cell-selection) .datatable-body-row:hover .datatable-body-cell.frozen {
-      background-color: $ngx-datatable-default-background-hover;
+  &:not(.cell-selection) {
+      .datatable-body-row:hover,
+      .datatable-body-row-wrapper:hover .datatable-body-row {
+          .datatable-body-cell.frozen {
+             background-color: $ngx-datatable-default-background-hover; 
+          }
+      }
   }
 }
 

@@ -21,13 +21,17 @@ interface Props {
   summaryRow?: boolean;
   summaryPosition?: 'top' | 'bottom';
   summaryHeight?: number;
+  expanded?: Array<any>;
+  rowDetailHeight?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   rows: () => [],
   rowHeight: 50,
   selected: () => [],
-  summaryHeight: 30
+  summaryHeight: 30,
+  expanded: () => [],
+  rowDetailHeight: 0
 });
 
 const emit = defineEmits(['scroll', 'update:scrollTop', 'row-select', 'activate', 'group-toggle']);
@@ -67,30 +71,99 @@ const onScroll = (e: Event) => {
   emit('update:scrollTop', scrollTop.value);
 };
 
-// Calculations
-const totalHeight = computed(() => props.rows.length * props.rowHeight);
+// Calculations for Variable Height
+const expandedIndices = computed(() => {
+  if (!props.expanded || props.expanded.length === 0 || !props.rowDetailHeight) return [];
+  const expandSet = new Set(props.expanded);
+  const indices: number[] = [];
+  props.rows.forEach((r, i) => {
+    if (expandSet.has(r)) indices.push(i);
+  });
+  return indices;
+});
+
+const getRowTop = (index: number) => {
+  if (expandedIndices.value.length === 0) return index * props.rowHeight;
+  
+  // Binary search count of expanded before index
+
+  let left = 0;
+  let right = expandedIndices.value.length - 1;
+  let result = 0;
+
+  while (left <= right) {
+    const mid = (left + right) >>> 1;
+    if (expandedIndices.value[mid] && expandedIndices.value[mid] < index) {
+      result = mid + 1;
+      left = mid + 1;
+    } else {
+      right = mid - 1;
+    }
+  }
+
+  return index * props.rowHeight + result * props.rowDetailHeight;
+};
+
+const totalHeight = computed(() => {
+  const base = props.rows.length * props.rowHeight;
+  const detail = expandedIndices.value.length * props.rowDetailHeight;
+  return base + detail;
+});
 
 // Buffer for smooth scrolling (render a few extra rows)
 const BUFFER = 5;
 
-const startIndex = computed(() => {
-  return Math.floor(scrollTop.value / props.rowHeight);
-});
+const getStartIndex = (scrollTopVal: number) => {
+  if (expandedIndices.value.length === 0) {
+    return Math.floor(scrollTopVal / props.rowHeight);
+  }
 
-const endIndex = computed(() => {
-  const visibleCount = Math.ceil(viewportHeight.value / props.rowHeight);
-  return Math.min(props.rows.length, startIndex.value + visibleCount + BUFFER);
+  let low = 0;
+  let high = props.rows.length - 1;
+  let idx = 0;
+
+  while (low <= high) {
+    const mid = (low + high) >>> 1;
+    const top = getRowTop(mid);
+    if (top <= scrollTopVal) {
+      idx = mid;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+  return idx;
+};
+
+const startIndex = computed(() => {
+  return getStartIndex(scrollTop.value);
 });
 
 const visibleRows = computed(() => {
-  // We need to account for buffer in start index too if we want, but usually start is strictly top.
-  // Better to buffer top and bottom.
+  // Determine range
+  // Simple heuristic for count: (Viewport / MinRowHeight) + Buffer
+  // MinRowHeight is props.rowHeight.
+  const visibleCount = Math.ceil(viewportHeight.value / props.rowHeight);
   const start = Math.max(0, startIndex.value - BUFFER);
-  const end = Math.min(props.rows.length, endIndex.value);
-  return props.rows.slice(start, end).map((row, i) => ({
-    row,
-    rowIndex: start + i
-  }));
+  const end = Math.min(props.rows.length, startIndex.value + visibleCount + BUFFER);
+
+  const expandSet = new Set(expandedIndices.value);
+
+  const res = [];
+  for (let i = start; i < end; i++) {
+    const row = props.rows[i];
+    // Optimized: getRowTop does binary search. 
+    // Optimization: we could incrementally calculate if we knew previous top.
+    // But for <50 items, N*LogM is fine.
+    const top = getRowTop(i);
+    res.push({
+      row,
+      rowIndex: i,
+      offsetY: top,
+      expanded: expandSet.has(i)
+    });
+  }
+  return res;
 });
 
 // Styles
@@ -138,7 +211,7 @@ const rowOffset = computed(() => {
            :group="item.row"
            :expanded="item.row.expanded"
            :rowHeight="rowHeight"
-           :style="{ transform: `translateY(${item.rowIndex * rowHeight}px)`, position: 'absolute', width: '100%', top: `${rowOffset}px` }"
+           :style="{ transform: `translateY(${item.offsetY}px)`, position: 'absolute', width: '100%', top: `${rowOffset}px` }"
            @toggle="emit('group-toggle', $event)"
          />
          <DataTableRow
@@ -148,12 +221,19 @@ const rowOffset = computed(() => {
            :columns="columns"
            :columnStyles="columnStyles"
            :rowHeight="rowHeight"
+           :rowDetailHeight="rowDetailHeight"
+           :expanded="item.expanded"
+           :offsetY="item.offsetY"
            :isSelected="selected?.includes(item.row)"
            :selectionType="selectionType"
            :style="{ top: `${rowOffset}px` }"
            @select="emit('row-select', { row: item.row, event: $event })"
            @activate="emit('activate', { row: item.row, event: $event })"
-         />
+         >
+            <template #detail>
+                <slot name="rowDetail" :row="item.row"></slot>
+            </template>
+         </DataTableRow>
        </template>
 
        <DataTableSummaryRow 
