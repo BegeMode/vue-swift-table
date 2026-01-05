@@ -3,11 +3,13 @@ import { ref, shallowRef } from 'vue';
 import BasicDemo from './demos/BasicDemo.vue';
 import RowDetailDemo from './demos/RowDetailDemo.vue';
 import ColumnPinningDemo from './demos/ColumnPinningDemo.vue';
+import TemplateDemo from './demos/TemplateDemo.vue';
 
 const tabs = [
   { name: 'Basic Features', component: BasicDemo },
   { name: 'Row Detail & Responsive', component: RowDetailDemo },
   { name: 'Column Pinning', component: ColumnPinningDemo },
+  { name: 'Templates / Slots', component: TemplateDemo },
 ];
 
 const currentTab = shallowRef(tabs[0]!.component);
@@ -44,7 +46,7 @@ const selectTab = (index: number) => {
 </template>
 
 <style lang="scss">
-@import './styles/index.scss';
+@use './styles/index.scss';
 
 body {
   margin: 0;

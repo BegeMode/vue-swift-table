@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import type { TableColumn } from '@/types/table-column.type';
 import type { SortType } from '@/types/sort.type';
+import HeaderSlotRenderer from './HeaderSlotRenderer';
 
 interface Props {
   columns: Array<TableColumn>;
@@ -176,6 +177,7 @@ watch(
     }
   }
 );
+
 </script>
 
 <template>
@@ -218,7 +220,7 @@ watch(
           :class="{ draggable: reorderable }"
           @click="onColumnClick(col, $event)"
         >
-          {{ col.name || col.prop }}
+          <HeaderSlotRenderer :column="col" />
           <span
             v-if="col.sortable !== false && sortDir(col)"
             class="sort-btn"

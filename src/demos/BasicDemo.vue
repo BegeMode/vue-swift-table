@@ -1,25 +1,43 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import DataTable from '../components/DataTable.vue';
-import type { TableColumn } from '../types/table-column.type';
-import type { SelectionType } from '../types/selection.type';
+import DataTable from '@/components/DataTable.vue';
+import type { TableColumn } from '@/types/table-column.type';
+import type { SelectionType } from '@/types/selection.type';
 
 // Mock Data Generation
-const generateData = (count: number) => {
-  return Array.from({ length: count }, (_, i) => ({
-    id: i,
-    name: `Name ${i}`,
-    age: 20 + (i % 50),
-    email: `user${i}@example.com`,
-    company: `Company ${i % 10}`,
-    address: `Address ${i} Street`,
-  }));
+// const generateData = (count: number) => {
+//   return Array.from({ length: count }, (_, i) => ({
+//     id: i,
+//     name: `Name ${i}`,
+//     age: 20 + (i % 50),
+//     email: `user${i}@example.com`,
+//     company: `Company ${i % 10}`,
+//     address: `Address ${i} Street`,
+//   }));
+// };
+
+const rows = ref<Record<string, unknown>[]>([]);
+
+const loadData = async () => {
+  try {
+    const module = await import('@/assets/data/10k.json');
+    const data = module.default.map((row: any) => ({
+      ...row,
+      address: row.address ? `${row.address.city}, ${row.address.state}` : 'Unknown',
+      company: `Company ${row.id}`, // Mock missing field
+      email: `user${row.id}@example.com`, // Mock missing field
+      height: Math.floor(Math.random() * 80) + 50,
+    }));
+    rows.value = data;
+  } catch (e) {
+    console.error('Failed to load data:', e);
+  }
 };
 
-const rows = ref(generateData(100)); // Reduce for pagination test
+loadData();
 
 // Pagination State
-const limit = ref(10);
+const limit = ref(250);
 const footerHeight = ref(50);
 const externalPaging = ref(false);
 const groupRowsBy = ref<string[]>([]);

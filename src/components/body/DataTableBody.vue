@@ -93,7 +93,7 @@ const getRowTop = (index: number) => {
 
   while (left <= right) {
     const mid = (left + right) >>> 1;
-    if (expandedIndices.value[mid] && expandedIndices.value[mid] < index) {
+    if (expandedIndices.value[mid] !== undefined && expandedIndices.value[mid]! < index) {
       result = mid + 1;
       left = mid + 1;
     } else {
