@@ -186,9 +186,7 @@ const totalHeight = computed(() => {
   return base + detail;
 });
 
-const visibleRowsHeight = computed(() => {
-  return containerHeight.value + offsetY.value;
-});
+const visibleRowsHeight = computed(() => containerHeight.value + offsetY.value);
 
 watch([() => props.rows, firstVisibleRow, containerHeight, expandedIndices], updateVisibleRows);
 </script>
@@ -248,7 +246,6 @@ watch([() => props.rows, firstVisibleRow, containerHeight, expandedIndices], upd
             :expanded="item.expanded"
             :isSelected="selected?.includes(item.row)"
             :selectionType="selectionType"
-            :style="{ top: `${rowOffset}px` }"
             @select="emit('row-select', { row: item.row, event: $event })"
             @activate="emit('activate', { row: item.row, event: $event })"
           >
@@ -287,9 +284,7 @@ watch([() => props.rows, firstVisibleRow, containerHeight, expandedIndices], upd
   }
 
   &-rows {
-    position: absolute;
-    top: 0;
-    left: 0;
+    position: relative;
     display: flex;
     flex-flow: column nowrap;
     contain: layout style;
