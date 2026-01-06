@@ -200,54 +200,56 @@ watch([() => props.rows, firstVisibleRow, containerHeight, expandedIndices], upd
         :columns="columns"
         :columnStyles="columnStyles"
         :rowHeight="summaryHeight"
-        style="position: sticky; top: 0; z-index: 10"
+        class="datatable-summary-top"
       />
-      <div ref="scrollable" class="datatable-body-scrollable" @scroll="handleScroll">
+      <div class="datatable-body-scroll-area">
+        <div ref="scrollable" class="datatable-body-scrollable" @scroll="handleScroll">
+          <div
+            class="datatable-body-scroll-content"
+            :style="{
+              height: `${totalHeight}px`,
+              width: innerWidth ? `${innerWidth}px` : '100%',
+            }"
+          ></div>
+        </div>
         <div
-          class="datatable-body-scroll-content"
+          ref="rowsContainer"
+          class="datatable-body-rows"
           :style="{
-            height: `${totalHeight}px`,
-            width: innerWidth ? `${innerWidth}px` : '100%',
+            width: `${containerWidth}px`,
+            transform: `translate3d(0, -${offsetY}px, 0)`,
+            height: `${visibleRowsHeight}px`,
           }"
-        ></div>
-      </div>
-      <div
-        ref="rowsContainer"
-        class="datatable-body-rows"
-        :style="{
-          width: `${containerWidth}px`,
-          transform: `translate3d(0, -${offsetY}px, 0)`,
-          height: `${visibleRowsHeight}px`,
-        }"
-        @wheel="onWheel"
-      >
-        <template v-for="item in visibleRows" :key="item.rowIndex">
-          <DataTableGroupHeader
-            v-if="item.row.__isGroup"
-            :group="item.row"
-            :expanded="item.row.expanded"
-            :rowHeight="rowHeight"
-            @toggle="emit('group-toggle', $event)"
-          />
-          <DataTableRow
-            v-else
-            :row="item.row"
-            :rowIndex="item.rowIndex"
-            :columns="columns"
-            :columnStyles="columnStyles"
-            :rowHeight="rowHeight"
-            :rowDetailHeight="rowDetailHeight"
-            :expanded="item.expanded"
-            :isSelected="selected?.includes(item.row)"
-            :selectionType="selectionType"
-            @select="emit('row-select', { row: item.row, event: $event })"
-            @activate="emit('activate', { row: item.row, event: $event })"
-          >
-            <template #detail>
-              <slot name="rowDetail" :row="item.row"></slot>
-            </template>
-          </DataTableRow>
-        </template>
+          @wheel="onWheel"
+        >
+          <template v-for="item in visibleRows" :key="item.rowIndex">
+            <DataTableGroupHeader
+              v-if="item.row.__isGroup"
+              :group="item.row"
+              :expanded="item.row.expanded"
+              :rowHeight="rowHeight"
+              @toggle="emit('group-toggle', $event)"
+            />
+            <DataTableRow
+              v-else
+              :row="item.row"
+              :rowIndex="item.rowIndex"
+              :columns="columns"
+              :columnStyles="columnStyles"
+              :rowHeight="rowHeight"
+              :rowDetailHeight="rowDetailHeight"
+              :expanded="item.expanded"
+              :isSelected="selected?.includes(item.row)"
+              :selectionType="selectionType"
+              @select="emit('row-select', { row: item.row, event: $event })"
+              @activate="emit('activate', { row: item.row, event: $event })"
+            >
+              <template #detail>
+                <slot name="rowDetail" :row="item.row"></slot>
+              </template>
+            </DataTableRow>
+          </template>
+        </div>
       </div>
       <DataTableSummaryRow
         v-if="summaryRow && summaryPosition === 'bottom'"
@@ -255,7 +257,7 @@ watch([() => props.rows, firstVisibleRow, containerHeight, expandedIndices], upd
         :columns="columns"
         :columnStyles="columnStyles"
         :rowHeight="summaryHeight"
-        :style="{ position: 'sticky', bottom: 0, zIndex: 10, marginTop: `${totalHeight}px` }"
+        class="datatable-summary-bottom"
       />
     </div>
   </div>
@@ -271,10 +273,18 @@ watch([() => props.rows, firstVisibleRow, containerHeight, expandedIndices], upd
 
   &-table {
     flex: 1;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
     position: relative;
     contain: content;
     height: 100%;
+  }
+
+  &-scroll-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
   }
 
   &-rows {
@@ -307,5 +317,11 @@ watch([() => props.rows, firstVisibleRow, containerHeight, expandedIndices], upd
     contain: layout style;
     width: 100%;
   }
+}
+
+.datatable-summary-top,
+.datatable-summary-bottom {
+  flex-shrink: 0;
+  z-index: 10;
 }
 </style>

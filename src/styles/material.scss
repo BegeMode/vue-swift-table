@@ -461,6 +461,30 @@ $datatable-summary-row-background-hover: #ddd !default;
       }
     }
   }
+
+  // Summary row position classes
+  .datatable-summary-top,
+  .datatable-summary-bottom {
+    background-color: $datatable-summary-row-background;
+    border-bottom: 1px solid $datatable-header-border-bottom-color;
+
+    .datatable-body-row {
+      background-color: $datatable-summary-row-background;
+
+      &:hover {
+        background-color: $datatable-summary-row-background-hover;
+      }
+
+      .datatable-body-cell {
+        font-weight: bold;
+      }
+    }
+  }
+
+  .datatable-summary-bottom {
+    border-bottom: none;
+    border-top: 1px solid $datatable-header-border-bottom-color;
+  }
   // Frozen columns
   .datatable-body-cell.frozen {
     background-color: $ngx-datatable-default-background;

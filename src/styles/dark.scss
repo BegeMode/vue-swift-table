@@ -115,4 +115,28 @@
       font-weight: bold;
     }
   }
+
+  // Summary row position classes
+  .datatable-summary-top,
+  .datatable-summary-bottom {
+    background-color: #14171f;
+    border-bottom: 1px solid #2f3646;
+
+    .datatable-body-row {
+      background-color: #14171f;
+
+      &:hover {
+        background-color: #14171f;
+      }
+
+      .datatable-body-cell {
+        font-weight: bold;
+      }
+    }
+  }
+
+  .datatable-summary-bottom {
+    border-bottom: none;
+    border-top: 1px solid #2f3646;
+  }
 }
