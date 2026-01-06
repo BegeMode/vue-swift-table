@@ -15,18 +15,20 @@ interface Props {
   allRowsSelected?: boolean;
   reorderable?: boolean;
   offsetX?: number;
+  scrollbarWidth?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   reorderable: false,
   offsetX: 0,
+  scrollbarWidth: 0,
 });
 
 const emit = defineEmits(['sort', 'select-all', 'column-reorder']);
 
 const style = computed(() => ({
   height: `${props.headerHeight}px`,
-  width: '100%',
+  marginRight: `${props.scrollbarWidth}px`,
 }));
 
 const onColumnClick = (column: TableColumn, event: MouseEvent) => {
@@ -177,7 +179,6 @@ watch(
     }
   }
 );
-
 </script>
 
 <template>
@@ -246,7 +247,7 @@ watch(
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .datatable-header-inner {
   display: flex;
   align-items: center;

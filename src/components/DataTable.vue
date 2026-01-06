@@ -469,6 +469,7 @@ const columnStyles = computed(() => {
 });
 
 const offsetX = ref(0);
+const scrollbarWidth = ref(0);
 
 const onScroll = (e: Event) => {
   const target = e.target as HTMLElement;
@@ -486,6 +487,7 @@ const onScroll = (e: Event) => {
         :innerWidth="innerWidth"
         :headerHeight="headerHeight"
         :offsetX="offsetX"
+        :scrollbarWidth="scrollbarWidth"
         :reorderable="reorderable"
         :sorts="internalSorts"
         :sortType="sortType"
@@ -513,6 +515,7 @@ const onScroll = (e: Event) => {
         @scroll="onScroll"
         @row-select="onRowSelect"
         @group-toggle="onGroupToggle"
+        @scrollbar-width="scrollbarWidth = $event"
       >
         <template #rowDetail="scope">
           <slot name="rowDetail" v-bind="scope"></slot>

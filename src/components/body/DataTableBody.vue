@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import type { CSSProperties } from 'vue';
 
 import type { TableColumn } from '../../types/table-column.type';
@@ -34,44 +34,134 @@ const props = withDefaults(defineProps<Props>(), {
   rowDetailHeight: 0,
 });
 
-const emit = defineEmits(['scroll', 'update:scrollTop', 'row-select', 'activate', 'group-toggle']);
+const emit = defineEmits(['scroll', 'update:scrollTop', 'row-select', 'activate', 'group-toggle', 'scrollbar-width']);
+
+const SCROLL_THROTTLE = 16; // ~60fps
+const DEFAULT_VISIBLE_ROWS = 50;
 
 // State
-const scrollTop = ref(0);
-const scroller = ref<HTMLElement | null>(null);
-const viewportHeight = ref(0); // This should be observed
+const scrollable = ref<HTMLDivElement | null>(null);
+const rowsContainer = ref<HTMLDivElement | null>(null);
+const containerHeight = ref(props.rowHeight * DEFAULT_VISIBLE_ROWS);
+const containerWidth = ref(0);
+const visibleRowsCount = computed(() => Math.ceil(containerHeight.value / props.rowHeight) + 1);
 
-// Resize Observer to get viewport height
+const firstVisibleRow = ref(0);
+const lastVisibleRow = ref(DEFAULT_VISIBLE_ROWS);
+const scrollLeft = ref(0);
+const offsetY = ref(0);
+
+const visibleRows = ref<Record<string, any>[]>([]);
+
+// State for scrollbars
+const scrollbarWidth = ref(0);
+const checkScrollbar = () => {
+  if (scrollable.value) {
+    const width = scrollable.value.offsetWidth - scrollable.value.clientWidth;
+    if (width !== scrollbarWidth.value) {
+      scrollbarWidth.value = width;
+      emit('scrollbar-width', width);
+    }
+  }
+};
+
+const updateVisibleRows = () => {
+  const start = Math.max(0, firstVisibleRow.value);
+  lastVisibleRow.value = Math.min(props.rows.length, start + visibleRowsCount.value);
+  const length = lastVisibleRow.value - start;
+
+  visibleRows.value.length = length;
+  for (let i = 0; i < length; i++) {
+    visibleRows.value[i] = {
+      row: props.rows[start + i],
+      rowIndex: i,
+      expanded: expandedSet.value.has(start + i),
+    };
+  }
+};
+
+let lastScrollTime = 0;
 let resizeObserver: ResizeObserver | null = null;
 
-onMounted(() => {
-  if (scroller.value) {
-    viewportHeight.value = scroller.value.clientHeight;
+const handleScroll = () => {
+  if (!scrollable.value) return;
 
-    resizeObserver = new ResizeObserver(entries => {
-      for (const entry of entries) {
-        viewportHeight.value = entry.contentRect.height;
-      }
-    });
-    resizeObserver.observe(scroller.value);
+  const now = Date.now();
+  if (now - lastScrollTime < SCROLL_THROTTLE) return;
+  lastScrollTime = now;
 
-    scroller.value.addEventListener('scroll', onScroll, { passive: true });
+  const scrollTop = scrollable.value.scrollTop;
+
+  scrollLeft.value = scrollable.value.scrollLeft;
+  if (rowsContainer.value) {
+    rowsContainer.value.scrollLeft = scrollLeft.value;
+  }
+
+  emit('scroll', { target: scrollable.value });
+
+  firstVisibleRow.value = Math.trunc(scrollTop / props.rowHeight);
+  offsetY.value = scrollTop % props.rowHeight;
+};
+
+const onWheel = (e: WheelEvent) => {
+  if (!scrollable.value) return;
+  scrollable.value.scrollTop += e.deltaY;
+  scrollable.value.scrollLeft += e.deltaX;
+};
+
+const rafHandleScroll = () => {
+  requestAnimationFrame(handleScroll);
+};
+
+const updateContainerSize = (entries: ResizeObserverEntry[]) => {
+  for (const entry of entries) {
+    if (entry.target === scrollable.value) {
+      containerHeight.value = entry.contentRect.height;
+      containerWidth.value = entry.contentRect.width;
+      checkScrollbar();
+      break;
+    }
+  }
+};
+
+onMounted(async () => {
+  updateVisibleRows();
+
+  if (scrollable.value) {
+    checkScrollbar();
+    scrollable.value.addEventListener('scroll', rafHandleScroll);
+
+    resizeObserver = new ResizeObserver(updateContainerSize);
+    resizeObserver.observe(scrollable.value);
+
+    await nextTick();
+    if (scrollable.value) {
+      containerHeight.value = scrollable.value.clientHeight;
+      containerWidth.value = scrollable.value.clientWidth;
+      firstVisibleRow.value = 0;
+      lastVisibleRow.value = Math.min(DEFAULT_VISIBLE_ROWS, props.rows.length);
+    }
   }
 });
 
 onUnmounted(() => {
-  if (resizeObserver) resizeObserver.disconnect();
-  if (scroller.value) scroller.value.removeEventListener('scroll', onScroll);
+  if (scrollable.value) {
+    scrollable.value.removeEventListener('scroll', rafHandleScroll);
+  }
+
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+    resizeObserver = null;
+  }
 });
 
-const onScroll = (e: Event) => {
-  const target = e.target as HTMLElement;
-  scrollTop.value = target.scrollTop;
-  emit('scroll', e);
-  emit('update:scrollTop', scrollTop.value);
-};
+const rowOffset = computed(() => {
+  if (props.summaryRow && props.summaryPosition === 'top') {
+    return props.summaryHeight;
+  }
+  return 0;
+});
 
-// Calculations for Variable Height
 const expandedIndices = computed(() => {
   if (!props.expanded || props.expanded.length === 0 || !props.rowDetailHeight) return [];
   const expandSet = new Set(props.expanded);
@@ -82,115 +172,30 @@ const expandedIndices = computed(() => {
   return indices;
 });
 
-const getRowTop = (index: number) => {
-  if (expandedIndices.value.length === 0) return index * props.rowHeight;
-
-  // Binary search count of expanded before index
-
-  let left = 0;
-  let right = expandedIndices.value.length - 1;
-  let result = 0;
-
-  while (left <= right) {
-    const mid = (left + right) >>> 1;
-    if (expandedIndices.value[mid] !== undefined && expandedIndices.value[mid]! < index) {
-      result = mid + 1;
-      left = mid + 1;
-    } else {
-      right = mid - 1;
-    }
-  }
-
-  return index * props.rowHeight + result * props.rowDetailHeight;
-};
+const expandedSet = computed(() => new Set(expandedIndices.value));
 
 const totalHeight = computed(() => {
-  const base = props.rows.length * props.rowHeight;
-  const detail = expandedIndices.value.length * props.rowDetailHeight;
+  const base = props.rowHeight * props.rows.length;
+  let detail = 0;
+  expandedIndices.value.forEach(i => {
+    if (i >= firstVisibleRow.value && i < lastVisibleRow.value) {
+      detail += props.rowDetailHeight;
+    }
+  });
+
   return base + detail;
 });
 
-// Buffer for smooth scrolling (render a few extra rows)
-const BUFFER = 5;
-
-const getStartIndex = (scrollTopVal: number) => {
-  if (expandedIndices.value.length === 0) {
-    return Math.floor(scrollTopVal / props.rowHeight);
-  }
-
-  let low = 0;
-  let high = props.rows.length - 1;
-  let idx = 0;
-
-  while (low <= high) {
-    const mid = (low + high) >>> 1;
-    const top = getRowTop(mid);
-    if (top <= scrollTopVal) {
-      idx = mid;
-      low = mid + 1;
-    } else {
-      high = mid - 1;
-    }
-  }
-  return idx;
-};
-
-const startIndex = computed(() => {
-  return getStartIndex(scrollTop.value);
+const visibleRowsHeight = computed(() => {
+  return containerHeight.value + offsetY.value;
 });
 
-const visibleRows = computed(() => {
-  // Determine range
-  // Simple heuristic for count: (Viewport / MinRowHeight) + Buffer
-  // MinRowHeight is props.rowHeight.
-  const visibleCount = Math.ceil(viewportHeight.value / props.rowHeight);
-  const start = Math.max(0, startIndex.value - BUFFER);
-  const end = Math.min(props.rows.length, startIndex.value + visibleCount + BUFFER);
-
-  const expandSet = new Set(expandedIndices.value);
-
-  const res = [];
-  for (let i = start; i < end; i++) {
-    const row = props.rows[i];
-    // Optimized: getRowTop does binary search.
-    // Optimization: we could incrementally calculate if we knew previous top.
-    // But for <50 items, N*LogM is fine.
-    const top = getRowTop(i);
-    res.push({
-      row,
-      rowIndex: i,
-      offsetY: top,
-      expanded: expandSet.has(i),
-    });
-  }
-  return res;
-});
-
-// Styles
-const scrollerStyle = computed<CSSProperties>(() => ({
-  height: '100%',
-  overflowY: 'auto',
-  overflowX: 'auto',
-  position: 'relative',
-}));
-
-const contentStyle = computed<CSSProperties>(() => ({
-  height: `${totalHeight.value + (props.summaryRow ? props.summaryHeight : 0)}px`,
-  width: props.innerWidth ? `${props.innerWidth}px` : '100%',
-  position: 'relative',
-}));
-
-const rowOffset = computed(() => {
-  if (props.summaryRow && props.summaryPosition === 'top') {
-    return props.summaryHeight;
-  }
-  return 0;
-});
+watch([() => props.rows, firstVisibleRow, containerHeight, expandedIndices], updateVisibleRows);
 </script>
 
 <template>
-  <div class="datatable-body" ref="scroller" :style="scrollerStyle">
-    <div :style="contentStyle" class="datatable-scroll">
+  <div class="datatable-body">
+    <div class="datatable-body-table">
       <DataTableSummaryRow
         v-if="summaryRow && summaryPosition === 'top'"
         :rows="rows"
@@ -199,43 +204,60 @@ const rowOffset = computed(() => {
         :rowHeight="summaryHeight"
         style="position: sticky; top: 0; z-index: 10"
       />
-
-      <template v-for="item in visibleRows" :key="item.rowIndex">
-        <DataTableGroupHeader
-          v-if="item.row.__isGroup"
-          :group="item.row"
-          :expanded="item.row.expanded"
-          :rowHeight="rowHeight"
+      <div ref="scrollable" class="datatable-body-scrollable" @scroll="handleScroll">
+        <div
+          class="datatable-body-scroll-content"
           :style="{
-            transform: `translateY(${item.offsetY}px)`,
-            position: 'absolute',
-            width: '100%',
-            top: `${rowOffset}px`,
+            height: `${totalHeight}px`,
+            width: innerWidth ? `${innerWidth}px` : '100%',
           }"
-          @toggle="emit('group-toggle', $event)"
-        />
-        <DataTableRow
-          v-else
-          :row="item.row"
-          :rowIndex="item.rowIndex"
-          :columns="columns"
-          :columnStyles="columnStyles"
-          :rowHeight="rowHeight"
-          :rowDetailHeight="rowDetailHeight"
-          :expanded="item.expanded"
-          :offsetY="item.offsetY"
-          :isSelected="selected?.includes(item.row)"
-          :selectionType="selectionType"
-          :style="{ top: `${rowOffset}px` }"
-          @select="emit('row-select', { row: item.row, event: $event })"
-          @activate="emit('activate', { row: item.row, event: $event })"
-        >
-          <template #detail>
-            <slot name="rowDetail" :row="item.row"></slot>
-          </template>
-        </DataTableRow>
-      </template>
-
+        ></div>
+      </div>
+      <div
+        ref="rowsContainer"
+        class="datatable-body-rows"
+        :style="{
+          width: `${containerWidth}px`,
+          transform: `translate3d(0, -${offsetY}px, 0)`,
+          height: `${visibleRowsHeight}px`,
+        }"
+        @wheel="onWheel"
+      >
+        <template v-for="item in visibleRows" :key="item.rowIndex">
+          <DataTableGroupHeader
+            v-if="item.row.__isGroup"
+            :group="item.row"
+            :expanded="item.row.expanded"
+            :rowHeight="rowHeight"
+            :style="{
+              transform: `translateY(${item.offsetY}px)`,
+              position: 'absolute',
+              width: '100%',
+              top: `${rowOffset}px`,
+            }"
+            @toggle="emit('group-toggle', $event)"
+          />
+          <DataTableRow
+            v-else
+            :row="item.row"
+            :rowIndex="item.rowIndex"
+            :columns="columns"
+            :columnStyles="columnStyles"
+            :rowHeight="rowHeight"
+            :rowDetailHeight="rowDetailHeight"
+            :expanded="item.expanded"
+            :isSelected="selected?.includes(item.row)"
+            :selectionType="selectionType"
+            :style="{ top: `${rowOffset}px` }"
+            @select="emit('row-select', { row: item.row, event: $event })"
+            @activate="emit('activate', { row: item.row, event: $event })"
+          >
+            <template #detail>
+              <slot name="rowDetail" :row="item.row"></slot>
+            </template>
+          </DataTableRow>
+        </template>
+      </div>
       <DataTableSummaryRow
         v-if="summaryRow && summaryPosition === 'bottom'"
         :rows="rows"
@@ -248,9 +270,53 @@ const rowOffset = computed(() => {
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .datatable-body {
-  /* Ensure it takes space */
-  flex: 1 1 auto;
+  flex: 1;
+  display: flex;
+  background-color: white;
+  overflow: hidden;
+  contain: content;
+
+  &-table {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    contain: content;
+    height: 100%;
+  }
+
+  &-rows {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-flow: column nowrap;
+    contain: layout style;
+    overflow: hidden;
+    will-change: transform;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  :deep(.datatable-body-row),
+  :deep(.datatable-group-header) {
+    pointer-events: auto;
+  }
+
+  &-scrollable {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: auto;
+  }
+
+  &-scroll-content {
+    position: relative;
+    contain: layout style;
+    width: 100%;
+  }
 }
 </style>
