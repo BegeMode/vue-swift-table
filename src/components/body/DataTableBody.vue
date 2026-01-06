@@ -155,12 +155,12 @@ onUnmounted(() => {
   }
 });
 
-const rowOffset = computed(() => {
-  if (props.summaryRow && props.summaryPosition === 'top') {
-    return props.summaryHeight;
-  }
-  return 0;
-});
+// const rowOffset = computed(() => {
+//   if (props.summaryRow && props.summaryPosition === 'top') {
+//     return props.summaryHeight;
+//   }
+//   return 0;
+// });
 
 const expandedIndices = computed(() => {
   if (!props.expanded || props.expanded.length === 0 || !props.rowDetailHeight) return [];
@@ -227,12 +227,6 @@ watch([() => props.rows, firstVisibleRow, containerHeight, expandedIndices], upd
             :group="item.row"
             :expanded="item.row.expanded"
             :rowHeight="rowHeight"
-            :style="{
-              transform: `translateY(${item.offsetY}px)`,
-              position: 'absolute',
-              width: '100%',
-              top: `${rowOffset}px`,
-            }"
             @toggle="emit('group-toggle', $event)"
           />
           <DataTableRow
