@@ -1,19 +1,32 @@
 <script setup lang="ts">
 import { computed, provide, toRefs, ref, watch, useSlots } from 'vue';
-import DataTableBody from './body/DataTableBody.vue';
-import DataTableHeader from './header/DataTableHeader.vue';
-import DataTableFooter from './footer/DataTableFooter.vue';
-import { useRowGrouping } from '../composables/useRowGrouping';
-import { columnsByPin, columnsTotalWidth } from '../utils/column';
+import DataTableBody from '@/components/body/DataTableBody.vue';
+import DataTableHeader from '@/components/header/DataTableHeader.vue';
+import DataTableFooter from '@/components/footer/DataTableFooter.vue';
+import { useRowGrouping } from '@/composables/useRowGrouping';
+import { columnsByPin, columnsTotalWidth } from '@/utils/column';
 import type { CSSProperties } from 'vue';
 
-import type { TableColumn } from '../types/table-column.type';
-import type { SortType } from '../types/sort.type';
-import type { SelectionType } from '../types/selection.type';
+import type { TableColumn } from '@/types/table-column.type';
+import type { SortType } from '@/types/sort.type';
+import type { SelectionType } from '@/types/selection.type';
+import type { ISortPropDir } from '@/types/sort-prop-dir.type';
+import type { IGroupedRows } from '@/types/grouped-rows';
+import { SortDirection } from '@/types/sort-direction.type';
+import type { RowType } from '@/types/table';
 
 // Props Definition based on Spec
 interface Props {
+  /** Array of rows to display in the table */
   rows: Array<Record<string, unknown>>;
+  /**
+   * Array of column definitions.
+   * **Important:** For column resizing to work correctly, this must be passed
+   * as a reactive `ref()`. The component directly mutates column.width during resize.
+   * @example
+   * const columns = ref<TableColumn[]>([...]);
+   * <DataTable :columns="columns" ... />
+   */
   columns: Array<TableColumn>;
   rowHeight?: number | string; // Fixed height, mandatory or default
   rowDetailHeight?: number; // Height of the detail row
@@ -25,7 +38,7 @@ interface Props {
   // Layout & Styling
   columnMode?: 'standard' | 'flex' | 'force';
   reorderable?: boolean;
-  rowClass?: (row: any, index: number) => string | Record<string, boolean>;
+  rowClass?: (row: Record<string, unknown>, index: number) => string | Record<string, boolean>;
   cssClasses?: Record<string, unknown>;
   messages?: Record<string, string>;
 
@@ -37,7 +50,7 @@ interface Props {
   externalSorting?: boolean;
 
   // Grouping & Tree
-  groupRowsBy?: Array<string | any>;
+  groupRowsBy?: Array<string>;
   groupExpansionDefault?: boolean;
   treeFromRelation?: string;
   treeToRelation?: string;
@@ -45,8 +58,10 @@ interface Props {
 
   // Selection
   selectionType?: SelectionType;
-  selected?: Array<any>;
-  rowIdentity?: (row: any) => any;
+  /** Array of selected rows */
+  selected?: Array<RowType>;
+  /** Function to determine row identity for selection comparison */
+  rowIdentity?: (row: RowType) => unknown;
   selectAllRowsOnPage?: boolean;
 
   // Summary
@@ -55,7 +70,8 @@ interface Props {
   summaryHeight?: number;
   // Sorting
   sortType?: SortType;
-  sorts?: Array<any>;
+  /** Array of active sorts */
+  sorts?: Array<ISortPropDir>;
   // Theme
   theme?: string;
 }
@@ -114,9 +130,9 @@ const emit = defineEmits([
 // ------------------------------------------------------------------
 // Row Detail Logic
 // ------------------------------------------------------------------
-const expandedRows = ref<any[]>([]);
+const expandedRows = ref<RowType[]>([]);
 
-const toggleExpandDetail = (row: any) => {
+const toggleExpandDetail = (row: RowType) => {
   const index = expandedRows.value.indexOf(row);
   if (index === -1) {
     expandedRows.value.push(row);
@@ -136,7 +152,7 @@ defineExpose({
 // ------------------------------------------------------------------
 // Sorting Logic
 // ------------------------------------------------------------------
-const internalSorts = ref<any[]>(props.sorts || []);
+const internalSorts = ref<ISortPropDir[]>(props.sorts || []);
 
 watch(
   () => props.sorts,
@@ -187,29 +203,33 @@ const onSort = (payload: { column: TableColumn; event?: MouseEvent }) => {
   if (isMulti && isShift) {
     // Multi-Sort (Additive) logic
     if (existingIdx > -1) {
-      const currentDir = newSorts[existingIdx].dir;
-      if (currentDir === 'asc') {
-        newSorts[existingIdx].dir = 'desc';
-      } else {
-        // Remove from list
-        newSorts.splice(existingIdx, 1);
+      const sortItem = newSorts[existingIdx];
+      if (sortItem) {
+        if (sortItem.dir === SortDirection.asc) {
+          sortItem.dir = SortDirection.desc;
+        } else {
+          // Remove from list
+          newSorts.splice(existingIdx, 1);
+        }
       }
     } else {
       // Add to end
-      newSorts.push({ prop, dir: 'asc' });
+      newSorts.push({ prop, dir: SortDirection.asc });
     }
   } else {
     // Single Sort logic (Replace)
     if (existingIdx > -1) {
-      const currentDir = newSorts[existingIdx].dir;
-      if (currentDir === 'asc') {
-        newSorts = [{ prop, dir: 'desc' }];
-      } else {
-        newSorts = [];
+      const sortItem = newSorts[existingIdx];
+      if (sortItem) {
+        if (sortItem.dir === SortDirection.asc) {
+          newSorts = [{ prop, dir: SortDirection.desc }];
+        } else {
+          newSorts = [];
+        }
       }
     } else {
       // New column
-      newSorts = [{ prop, dir: 'asc' }];
+      newSorts = [{ prop, dir: SortDirection.asc }];
     }
   }
 
@@ -286,7 +306,7 @@ const {
   toRefs(props).groupExpansionDefault
 );
 
-const onGroupToggle = (event: any) => {
+const onGroupToggle = (event: IGroupedRows) => {
   // Event comes from Body/Header: { type: 'group', value: group }
   // Or just group object?
   // Vue 2 body-group-header emitted { type: 'group', value: this.group }
@@ -301,7 +321,7 @@ const onGroupToggle = (event: any) => {
 // ------------------------------------------------------------------
 // Selection Logic
 // ------------------------------------------------------------------
-const selectedState = ref<any[]>(props.selected || []);
+const selectedState = ref<RowType[]>(props.selected || []);
 
 // Watch props selected to keep in sync if controlled externally
 watch(
@@ -311,16 +331,16 @@ watch(
   }
 );
 
-const onRowSelect = ({ row, type: _type, event }: { row: any; type?: string; event?: MouseEvent }) => {
+const onRowSelect = ({ row, type: _type, event }: { row: RowType; type?: string; event?: MouseEvent }) => {
   if (!props.selectionType) return;
 
-  const select = (r: any) => {
+  const select = (r: RowType) => {
     selectedState.value = [r];
     emit('select', { selected: selectedState.value });
     emit('update:selected', selectedState.value);
   };
 
-  const toggle = (r: any) => {
+  const toggle = (r: RowType) => {
     // Find index of row in selected
     const idx = selectedState.value.indexOf(r);
     // Note: If using rowIdentity, we should use that to find the index.

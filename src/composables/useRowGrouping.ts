@@ -2,10 +2,12 @@ import { ref, computed, watch } from 'vue';
 import type { Ref } from 'vue';
 import type { IGroupedRows } from '../types/grouped-rows';
 import { getterForProp } from '../utils/column-prop-getters';
+import type { TableColumnProp } from '@/types/table-column.type';
+import type { RowType } from '@/types/table';
 
 export function useRowGrouping(
-  rows: Ref<any[]>,
-  groupRowsBy: Ref<any[] | undefined>,
+  rows: Ref<Array<RowType>>,
+  groupRowsBy: Ref<string[] | undefined>,
   groupExpansionDefault: Ref<boolean>
 ) {
   // Map to store expanded state of groups: key -> boolean
@@ -34,7 +36,7 @@ export function useRowGrouping(
 
   // Main Grouping Logic
   // We build a tree of Groups first
-  const groupTree = computed(() => {
+  const groupTree = computed<(RowType | IGroupedRows)[] | null>(() => {
     if (!groupRowsBy.value || !groupRowsBy.value.length) {
       return null;
     }
@@ -42,20 +44,25 @@ export function useRowGrouping(
   });
 
   // Helper to group rows recursively
-  function groupRows(data: any[], groupByFields: any[], level: number, parentKey: string = ''): (any | IGroupedRows)[] {
+  function groupRows(
+    data: RowType[],
+    groupByFields: string[],
+    level: number,
+    parentKey: string = ''
+  ): (RowType | IGroupedRows)[] {
     // If we exhausted fields, return data
     if (level >= groupByFields.length) {
       return data;
     }
 
     const field = groupByFields[level];
-    const valueGetter = getterForProp(field);
+    const valueGetter = getterForProp(field as TableColumnProp);
 
     // We use a Map to preserve order of appearance
     const groups = new Map<string, IGroupedRows>();
 
     for (const row of data) {
-      const fieldVal = valueGetter(row, field);
+      const fieldVal = valueGetter(row as RowType, field as TableColumnProp);
       const keyVal = fieldVal === null || fieldVal === undefined ? '' : String(fieldVal);
       const uniqueKey = getGroupKey(keyVal, level, parentKey);
 
@@ -63,13 +70,13 @@ export function useRowGrouping(
         groups.set(uniqueKey, {
           __isGroup: true,
           key: uniqueKey,
-          value: [row], // Start with this row
+          value: [row as RowType], // Start with this row
           level: level,
           expanded: groupingExpansion(uniqueKey),
           keys: [{ title: String(field), prop: String(field), value: keyVal }], // Store metadata
         });
       } else {
-        groups.get(uniqueKey)!.value.push(row);
+        groups.get(uniqueKey)!.value.push(row as RowType);
       }
     }
 
@@ -78,7 +85,7 @@ export function useRowGrouping(
     for (const group of groups.values()) {
       // If there are more levels, group the children
       if (level + 1 < groupByFields.length) {
-        group.value = groupRows(group.value, groupByFields, level + 1, group.key);
+        group.value = groupRows(group.value as RowType[], groupByFields, level + 1, group.key) as RowType[];
       }
       result.push(group);
     }
@@ -89,17 +96,17 @@ export function useRowGrouping(
   // Flattener
   const flattenedRows = computed(() => {
     if (!groupTree.value) return rows.value;
-    return flattenGroups(groupTree.value);
+    return flattenGroups(groupTree.value as (RowType | IGroupedRows)[]);
   });
 
-  function flattenGroups(groups: (any | IGroupedRows)[]): any[] {
-    const result: any[] = [];
+  function flattenGroups(groups: (RowType | IGroupedRows)[]): RowType[] {
+    const result: (RowType | IGroupedRows)[] = [];
     for (const item of groups) {
       if (item.__isGroup) {
         result.push(item); // Add the group header
         if (item.expanded) {
           // Add its children (flattened if they are groups)
-          if (item.value && item.value.length > 0) {
+          if (Array.isArray(item.value) && item.value.length > 0) {
             if (item.value[0].__isGroup) {
               result.push(...flattenGroups(item.value));
             } else {
@@ -112,7 +119,7 @@ export function useRowGrouping(
         result.push(item);
       }
     }
-    return result;
+    return result as RowType[];
   }
 
   const onGroupToggle = (group: IGroupedRows) => {
