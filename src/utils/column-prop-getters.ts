@@ -1,9 +1,11 @@
 // maybe rename this file to prop-getters.ts
 
-import type { TableColumnProp } from '../types/table-column.type';
-import { isNullOrUndefined } from './column-helper';
+import type { IGroupedRows } from '@/types/grouped-rows';
+import type { TableColumnProp } from '@/types/table-column.type';
+import { isNullOrUndefined } from '@/utils/column-helper';
+import type { RowType } from '@/types/table';
 
-export type ValueGetter = (obj: Record<string, unknown>, prop: TableColumnProp) => unknown;
+export type ValueGetter = (obj: RowType | IGroupedRows, prop: TableColumnProp) => unknown;
 
 /**
  * Always returns the empty string ''

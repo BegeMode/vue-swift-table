@@ -3,7 +3,6 @@ import { computed, provide, toRefs, ref, watch, useSlots } from 'vue';
 import DataTableBody from '@/components/body/DataTableBody.vue';
 import DataTableHeader from '@/components/header/DataTableHeader.vue';
 import DataTableFooter from '@/components/footer/DataTableFooter.vue';
-import { useRowGrouping } from '@/composables/useRowGrouping';
 import { columnsByPin, columnsTotalWidth } from '@/utils/column';
 import type { CSSProperties } from 'vue';
 
@@ -14,11 +13,12 @@ import type { ISortPropDir } from '@/types/sort-prop-dir.type';
 import type { IGroupedRows } from '@/types/grouped-rows';
 import { SortDirection } from '@/types/sort-direction.type';
 import type { RowType } from '@/types/table';
+import { PageManager } from '@/managers/pageManager';
+import { RowsManager } from '@/managers/rowsManager';
 
 // Props Definition based on Spec
 interface Props {
-  /** Array of rows to display in the table */
-  rows: Array<Record<string, unknown>>;
+  getPageRows: (page: number) => Promise<{ rows: Array<RowType>; isLast?: boolean; allRows?: boolean }>;
   /**
    * Array of column definitions.
    * **Important:** For column resizing to work correctly, this must be passed
@@ -43,9 +43,11 @@ interface Props {
   messages?: Record<string, string>;
 
   // Paging & Scrolling
+  infiniteScroll?: boolean;
+  totalPages?: number;
+  totalRows?: number;
   pageSize?: number;
-  count?: number;
-  offset?: number; // page index
+  page?: number; // page index
   externalPaging?: boolean;
   externalSorting?: boolean;
 
@@ -79,7 +81,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   rowHeight: 50,
   headerHeight: 50,
-  footerHeight: 0,
+  footerHeight: 50,
   columnMode: 'standard',
   reorderable: false,
   externalPaging: false,
@@ -91,7 +93,8 @@ const props = withDefaults(defineProps<Props>(), {
   summaryPosition: 'top',
   summaryHeight: 30,
   theme: 'material',
-  rows: () => [],
+  page: 1,
+  infiniteScroll: false,
   columns: () => [],
   selected: () => [],
   sorts: () => [],
@@ -127,17 +130,26 @@ const emit = defineEmits([
   'detail-toggle',
 ]);
 
+const pageManager = new PageManager();
+const rowsManager = new RowsManager(pageManager);
+
+// Reactive version counter - incremented when rows data changes
+const rowsVersion = ref(0);
+
+provide('pageManager', pageManager);
+provide('rowsManager', rowsManager);
+provide('rowsVersion', rowsVersion);
+
 // ------------------------------------------------------------------
 // Row Detail Logic
 // ------------------------------------------------------------------
-const expandedRows = ref<RowType[]>([]);
+const expandedRows = ref<Set<RowType>>(new Set());
 
 const toggleExpandDetail = (row: RowType) => {
-  const index = expandedRows.value.indexOf(row);
-  if (index === -1) {
-    expandedRows.value.push(row);
+  if (expandedRows.value.has(row)) {
+    expandedRows.value.delete(row);
   } else {
-    expandedRows.value.splice(index, 1);
+    expandedRows.value.add(row);
   }
   emit('detail-toggle', {
     rows: expandedRows.value,
@@ -160,32 +172,6 @@ watch(
     internalSorts.value = val || [];
   }
 );
-
-const sortedRows = computed(() => {
-  if (props.externalSorting || !internalSorts.value.length) {
-    return props.rows;
-  }
-
-  const rows = [...props.rows];
-  return rows.sort((a, b) => {
-    for (const sort of internalSorts.value) {
-      const { prop, dir } = sort;
-      if (!prop) continue;
-
-      const valA = a[prop] as string | number;
-      const valB = b[prop] as string | number;
-
-      if (valA === valB) continue;
-
-      if (valA === undefined || valA === null) return 1;
-      if (valB === undefined || valB === null) return -1;
-
-      const comparison = valA > valB ? 1 : -1;
-      return dir === 'asc' ? comparison : -comparison;
-    }
-    return 0;
-  });
-});
 
 const onSort = (payload: { column: TableColumn; event?: MouseEvent }) => {
   const { column, event } = payload;
@@ -234,6 +220,7 @@ const onSort = (payload: { column: TableColumn; event?: MouseEvent }) => {
   }
 
   internalSorts.value = newSorts;
+  rowsManager.sort(newSorts);
   emit('sort', newSorts);
   emit('update:sort', newSorts);
 };
@@ -241,53 +228,42 @@ const onSort = (payload: { column: TableColumn; event?: MouseEvent }) => {
 // ------------------------------------------------------------------
 // Pagination Logic
 // ------------------------------------------------------------------
-const internalOffset = ref(props.offset || 0);
+const internalPage = ref(0);
 
 watch(
-  () => props.offset,
+  () => props.page,
   val => {
-    if (val !== undefined) internalOffset.value = val;
+    if (val !== undefined) internalPage.value = val;
   }
 );
 
-const pageSize = computed(() => {
-  // If undefined, we show all rows (no paging)
-  return props.pageSize || 0;
-});
-
-const rowCount = computed(() => {
-  if (props.externalPaging) return props.count || 0;
-  return props.rows.length;
-});
-
-const pagedRows = computed(() => {
-  if (props.externalPaging) return props.rows;
-
-  // Grouping Paging
-  if (props.groupRowsBy && props.groupRowsBy.length) {
-    if (!groupTree.value) return [];
-
-    // If no page size, return full flat list
-    if (!pageSize.value) return groupedRows.value;
-
-    // Slice Groups (Top Level)
-    const start = internalOffset.value * pageSize.value;
-    const end = start + pageSize.value;
-    const pagedGroups = groupTree.value.slice(start, end);
-    return flattenGroups(pagedGroups);
-  }
-
-  // Row Paging
-  if (!pageSize.value) return sortedRows.value;
-
-  const start = internalOffset.value * pageSize.value;
-  const end = start + pageSize.value;
-  return sortedRows.value.slice(start, end);
-});
-
-const onPage = (event: { offset: number; limit: number; count: number }) => {
+const onPage = async (event: { page: number }) => {
   if (!props.externalPaging) {
-    internalOffset.value = event.offset;
+    const pageInfo = pageManager.getPageInfo(event.page);
+    if (pageInfo) {
+      internalPage.value = event.page;
+      return;
+    }
+    const data = await props.getPageRows(event.page);
+    if (data.allRows) {
+      const totalPages = props.totalPages ?? Math.ceil(data.rows.length / 30);
+      const pageSize = data.rows.length / totalPages;
+      for (let i = 1; i <= totalPages; i++) {
+        const pageData = data.rows.slice((i - 1) * pageSize, i * pageSize);
+        rowsManager.addPage(pageData, i, i === totalPages);
+      }
+    } else {
+      rowsManager.addPage(data.rows, event.page, data.isLast);
+    }
+    // Trigger reactive update for components depending on rows count
+    rowsVersion.value++;
+
+    // Apply current sort to newly added data
+    if (internalSorts.value.length > 0) {
+      rowsManager.sort(internalSorts.value);
+    }
+
+    internalPage.value = event.page;
   }
   emit('page', event);
 };
@@ -295,33 +271,26 @@ const onPage = (event: { offset: number; limit: number; count: number }) => {
 // ------------------------------------------------------------------
 // Grouping Logic
 // ------------------------------------------------------------------
-const {
-  groupedRows,
-  groupTree,
-  flattenGroups,
-  onGroupToggle: onGroupToggleLogic,
-} = useRowGrouping(
-  sortedRows, // Use sorted rows
-  toRefs(props).groupRowsBy,
-  toRefs(props).groupExpansionDefault
+// Watch for groupRowsBy changes and update RowsManager
+watch(
+  () => props.groupRowsBy,
+  newFields => {
+    rowsManager.setGroupBy(newFields || []);
+  },
+  { immediate: true }
 );
 
 const onGroupToggle = (event: IGroupedRows) => {
-  // Event comes from Body/Header: { type: 'group', value: group }
-  // Or just group object?
-  // Vue 2 body-group-header emitted { type: 'group', value: this.group }
-  // Our DataTableGroupHeader emits user object.
-  // Let's assume the event payload IS the group object or { value: group }
-  // I'll check DataTableGroupHeader.vue: emit('toggle', props.group)
-  // So event is the group.
-  onGroupToggleLogic(event);
+  rowsManager.toggleGroupExpanded(event.key);
+  // Trigger reactive update for components depending on rows data
+  rowsVersion.value++;
   emit('group-toggle', event);
 };
 
 // ------------------------------------------------------------------
 // Selection Logic
 // ------------------------------------------------------------------
-const selectedState = ref<RowType[]>(props.selected || []);
+const selectedState = ref<Array<RowType | IGroupedRows>>(props.selected || []);
 
 // Watch props selected to keep in sync if controlled externally
 watch(
@@ -340,7 +309,7 @@ const onRowSelect = ({ row, type: _type, event }: { row: RowType; type?: string;
     emit('update:selected', selectedState.value);
   };
 
-  const toggle = (r: RowType) => {
+  const toggle = (r: RowType | IGroupedRows) => {
     // Find index of row in selected
     const idx = selectedState.value.indexOf(r);
     // Note: If using rowIdentity, we should use that to find the index.
@@ -375,11 +344,11 @@ const onRowSelect = ({ row, type: _type, event }: { row: RowType; type?: string;
 const onSelectAll = () => {
   // Basic implementation: Toggle all visible or all rows
   // For now, let's select all rows if not all selected, otherwise clear.
-  const allSelected = selectedState.value.length === (props.count || props.rows.length);
+  const allSelected = selectedState.value.length === (props.totalRows || rowsManager.getRowsCount());
   if (allSelected) {
     selectedState.value = [];
   } else {
-    selectedState.value = [...props.rows];
+    selectedState.value = [...rowsManager.getRows()];
   }
   emit('select', { selected: selectedState.value });
   emit('update:selected', selectedState.value);
@@ -500,65 +469,68 @@ const onScroll = (e: Event) => {
 
 <template>
   <div :class="componentClasses">
-    <div class="visible">
-      <DataTableHeader
-        :columns="sortedColumns"
-        :columnStyles="columnStyles"
-        :innerWidth="innerWidth"
-        :headerHeight="headerHeight"
-        :offsetX="offsetX"
-        :scrollbarWidth="scrollbarWidth"
-        :reorderable="reorderable"
-        :sorts="internalSorts"
-        :sortType="sortType"
-        :selectionType="selectionType"
-        :allRowsSelected="selectedState.length === (props.count || props.rows.length) && props.rows.length > 0"
-        @sort="onSort"
-        @select-all="onSelectAll"
-        @column-reorder="onColumnReorder"
-      />
+    <DataTableHeader
+      :columns="sortedColumns"
+      :columnStyles="columnStyles"
+      :innerWidth="innerWidth"
+      :headerHeight="headerHeight"
+      :offsetX="offsetX"
+      :scrollbarWidth="scrollbarWidth"
+      :reorderable="reorderable"
+      :sorts="internalSorts"
+      :sortType="sortType"
+      :selectionType="selectionType"
+      :allRowsSelected="
+        selectedState.length === (props.totalRows || rowsManager.getRowsCount()) && rowsManager.getRowsCount() > 0
+      "
+      @sort="onSort"
+      @select-all="onSelectAll"
+      @column-reorder="onColumnReorder"
+    />
 
-      <!-- Body Component -->
-      <DataTableBody
-        :rows="pagedRows"
-        :columns="sortedColumns"
-        :columnStyles="columnStyles"
-        :innerWidth="innerWidth"
-        :rowHeight="Number(rowHeight)"
-        :bodyHeight="height"
-        :selected="selectedState"
-        :selectionType="selectionType"
-        :summaryRow="summaryRow"
-        :summaryPosition="summaryPosition"
-        :expanded="expandedRows"
-        :rowDetailHeight="rowDetailHeight"
-        @scroll="onScroll"
-        @row-select="onRowSelect"
-        @group-toggle="onGroupToggle"
-        @scrollbar-width="scrollbarWidth = $event"
-      >
-        <template #rowDetail="scope">
-          <slot name="rowDetail" v-bind="scope"></slot>
-        </template>
-      </DataTableBody>
+    <!-- Body Component -->
+    <DataTableBody
+      :infiniteScroll="infiniteScroll"
+      :page="internalPage"
+      :columns="sortedColumns"
+      :columnStyles="columnStyles"
+      :innerWidth="innerWidth"
+      :rowHeight="Number(rowHeight)"
+      :bodyHeight="height"
+      :selected="selectedState"
+      :selectionType="selectionType"
+      :sorts="internalSorts"
+      :groupRowsBy="groupRowsBy"
+      :summaryRow="summaryRow"
+      :summaryPosition="summaryPosition"
+      :expanded="expandedRows"
+      :rowDetailHeight="rowDetailHeight"
+      @scroll="onScroll"
+      @row-select="onRowSelect"
+      @group-toggle="onGroupToggle"
+      @scrollbar-width="scrollbarWidth = $event"
+      @page="onPage"
+    >
+      <template #rowDetail="scope">
+        <slot name="rowDetail" v-bind="scope"></slot>
+      </template>
+    </DataTableBody>
 
-      <!-- Footer Component will go here -->
-      <DataTableFooter
-        v-if="footerHeight"
-        :footerHeight="footerHeight"
-        :rowCount="rowCount"
-        :pageSize="pageSize"
-        :offset="internalOffset"
-        :pagerLeftArrowIcon="cssClasses.pagerLeftArrow as string"
-        :pagerRightArrowIcon="cssClasses.pagerRightArrow as string"
-        :pagerPreviousIcon="cssClasses.pagerPrevious as string"
-        :pagerNextIcon="cssClasses.pagerNext as string"
-        :totalMessage="messages.totalMessage"
-        :selectedMessage="selected?.length > 0 ? messages.selectedMessage : false"
-        :selectedCount="selected?.length"
-        @page="onPage"
-      />
-    </div>
+    <!-- Footer Component will go here -->
+    <DataTableFooter
+      v-if="footerHeight"
+      :footerHeight="footerHeight"
+      :totalPages="totalPages"
+      :page="internalPage || page"
+      :pagerLeftArrowIcon="cssClasses.pagerLeftArrow as string"
+      :pagerRightArrowIcon="cssClasses.pagerRightArrow as string"
+      :pagerPreviousIcon="cssClasses.pagerPrevious as string"
+      :pagerNextIcon="cssClasses.pagerNext as string"
+      :totalMessage="messages.totalMessage"
+      :selectedMessage="selected?.length > 0 ? messages.selectedMessage : false"
+      :selectedCount="selected?.length"
+      @page="onPage"
+    />
   </div>
 </template>
 

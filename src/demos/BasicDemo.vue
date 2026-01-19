@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import DataTable from '@/components/DataTable.vue';
 import type { TableColumn } from '@/types/table-column.type';
 import type { SelectionType } from '@/types/selection.type';
+import { loadPage10k } from './dataLoader';
 
 // Mock Data Generation
 // const generateData = (count: number) => {
@@ -16,25 +17,7 @@ import type { SelectionType } from '@/types/selection.type';
 //   }));
 // };
 
-const rows = ref<Record<string, unknown>[]>([]);
-
-const loadData = async () => {
-  try {
-    const module = await import('@/assets/data/10k.json');
-    const data = module.default.map((row: any) => ({
-      ...row,
-      address: row.address ? `${row.address.city}, ${row.address.state}` : 'Unknown',
-      company: `Company ${row.id}`, // Mock missing field
-      email: `user${row.id}@example.com`, // Mock missing field
-      height: Math.floor(Math.random() * 80) + 50,
-    }));
-    rows.value = data;
-  } catch (e) {
-    console.error('Failed to load data:', e);
-  }
-};
-
-loadData();
+const infiniteScroll = ref(false);
 
 // Pagination State
 const limit = ref(250);
@@ -79,6 +62,14 @@ const columns = ref<TableColumn[]>([
   { prop: 'address', name: 'Address', width: 300, resizeable: true, sortable: false },
 ]);
 
+const getPageRows = async (page: number): Promise<{ rows: Array<Record<string, unknown>>; isLast: boolean }> => {
+  const rows = (await loadPage10k(page, limit.value, 200)) ?? [];
+  return {
+    rows,
+    isLast: !rows.length || rows.length < limit.value,
+  };
+};
+
 const onSort = (event: Array<{ prop: string; dir: 'asc' | 'desc' }>) => {
   console.log('Sort Event:', event);
 };
@@ -101,6 +92,7 @@ const onReorder = (newColumns: TableColumn[]) => {
     <div class="header-params">
       <h2>Basic Demo</h2>
       <div class="controls">
+        <label><input type="checkbox" v-model="infiniteScroll" /> Infinite Scroll</label>
         <label>Page Size: <input type="number" v-model="limit" /></label>
         <label>Footer Height: <input type="number" v-model="footerHeight" /></label>
         <label><input type="checkbox" v-model="externalPaging" /> Server-side Paging</label>
@@ -141,7 +133,8 @@ const onReorder = (newColumns: TableColumn[]) => {
 
     <div class="table-wrapper" :class="theme === 'dark' ? 'dark-wrapper' : ''">
       <DataTable
-        :rows="rows"
+        :infiniteScroll="infiniteScroll"
+        :getPageRows="getPageRows"
         :columns="columns"
         :headerHeight="50"
         :rowHeight="50"

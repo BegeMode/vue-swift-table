@@ -1,22 +1,19 @@
 <script setup lang="ts">
-import { computed, toRefs } from 'vue';
+import type { IPageManager } from '@/types/table';
+import { computed, inject, toRefs } from 'vue';
 
 interface Props {
+  totalPages?: number;
   pagerLeftArrowIcon?: string;
   pagerRightArrowIcon?: string;
   pagerPreviousIcon?: string;
   pagerNextIcon?: string;
 
   page?: number; // Current page, 1-based
-  size?: number; // Rows per page
-  count?: number; // Total rows
-  pagerComponent?: any; // Custom pager component
 }
 
 const props = withDefaults(defineProps<Props>(), {
   page: 1,
-  size: 0,
-  count: 0,
   pagerLeftArrowIcon: 'datatable-icon-left',
   pagerRightArrowIcon: 'datatable-icon-right',
   pagerPreviousIcon: 'datatable-icon-prev',
@@ -25,18 +22,13 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits(['change']);
 
-const { page, size, count } = toRefs(props);
+const { page, totalPages } = toRefs(props);
 
-const totalPages = computed(() => {
-  const s = size.value;
-  const c = count.value;
-  if (s < 1 || c < 1) return 1;
-  return Math.ceil(c / s);
-});
+const pageManager = inject('pageManager') as IPageManager;
 
 const pages = computed(() => {
   const cur = page.value;
-  const total = totalPages.value;
+  const total = totalPages.value || pageManager.totalPages || 1;
   const max = 5;
 
   if (total <= max) {
@@ -71,10 +63,10 @@ const pages = computed(() => {
 });
 
 const canPrevious = computed(() => page.value > 1);
-const canNext = computed(() => page.value < totalPages.value);
+const canNext = computed(() => !totalPages.value || page.value < totalPages.value);
 
 const selectPage = (p: number) => {
-  if (p < 1 || p > totalPages.value || p === page.value) return;
+  if (p < 1 || (totalPages.value && p > totalPages.value) || p === page.value) return;
   emit('change', { page: p });
 };
 </script>
@@ -101,7 +93,7 @@ const selectPage = (p: number) => {
         <i :class="pagerRightArrowIcon"></i>
       </a>
     </li>
-    <li :class="{ disabled: !canNext }">
+    <li :class="{ disabled: !canNext }" v-if="totalPages">
       <a role="button" aria-label="Last" @click.prevent="selectPage(totalPages)">
         <i :class="pagerNextIcon"></i>
       </a>

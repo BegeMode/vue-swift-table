@@ -4,19 +4,23 @@ import DataTable from '../components/DataTable.vue';
 import type { TableColumn } from '../types/table-column.type';
 
 // Mock Data
-const rows = ref(
-  Array.from({ length: 50 }, (_, i) => ({
-    id: i,
-    name: `Person ${i}`,
-    gender: i % 2 === 0 ? 'Male' : 'Female',
-    age: 20 + (i % 40),
-    company: `Company ${i}`,
-    address: `123 St, City ${i}`,
-  }))
-);
+const rows = Array.from({ length: 50 }, (_, i) => ({
+  id: i,
+  name: `Person ${i}`,
+  gender: i % 2 === 0 ? 'Male' : 'Female',
+  age: 20 + (i % 40),
+  company: `Company ${i}`,
+  address: `123 St, City ${i}`,
+}));
+
+const getPageRows = (_page: number): Promise<{ rows: Array<Record<string, unknown>>; isLast: boolean }> => {
+  return Promise.resolve({
+    rows,
+    isLast: true,
+  });
+};
 
 const table = ref();
-// const expanded = ref<any[]>([]);
 
 const toggleExpandRow = (row: any) => {
   if (table.value) {
@@ -71,7 +75,7 @@ const columns = computed(() => {
     <div class="table-wrapper">
       <DataTable
         ref="table"
-        :rows="rows"
+        :getPageRows="getPageRows"
         :columns="columns"
         :rowHeight="50"
         :rowDetailHeight="100"
@@ -102,9 +106,9 @@ const columns = computed(() => {
         -->
 
         <!-- Row Detail Template -->
-        <template #rowDetail="{ row }">
+        <template #rowDetail="{ row }: { row: any }">
           <div class="detail-content">
-            <div v-if="isMobile">
+            <div v-if="isMobile && row">
               <strong>Hidden Columns (Mobile):</strong>
               <div>Gender: {{ row.gender }}</div>
               <div>Age: {{ row.age }}</div>

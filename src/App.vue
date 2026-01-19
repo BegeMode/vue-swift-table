@@ -4,9 +4,11 @@ import BasicDemo from './demos/BasicDemo.vue';
 import RowDetailDemo from './demos/RowDetailDemo.vue';
 import ColumnPinningDemo from './demos/ColumnPinningDemo.vue';
 import TemplateDemo from './demos/TemplateDemo.vue';
+import AllRowsAtOnceDemo from './demos/AllRowsAtOnce.vue';
 
 const tabs = [
   { name: 'Basic Features', component: BasicDemo },
+  { name: 'All Rows At Once', component: AllRowsAtOnceDemo },
   { name: 'Row Detail & Responsive', component: RowDetailDemo },
   { name: 'Column Pinning', component: ColumnPinningDemo },
   { name: 'Templates / Slots', component: TemplateDemo },

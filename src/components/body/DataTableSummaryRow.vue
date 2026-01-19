@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import type { TableColumn } from '../../types/table-column.type';
-import { getterForProp } from '../../utils/column-prop-getters';
+import { computed, inject } from 'vue';
+import type { TableColumn, TableColumnProp } from '@/types/table-column.type';
+import { getterForProp } from '@/utils/column-prop-getters';
+import type { IRowsManager } from '@/types/table';
 
 const props = defineProps<{
-  rows: any[];
   columns: TableColumn[];
   columnStyles?: Record<string, any>; // CSSProperties
   rowHeight: number;
@@ -12,6 +12,8 @@ const props = defineProps<{
 
 const summaryData = computed(() => {
   const summary: Record<string, any> = {};
+  const rowsManager: IRowsManager = inject('rowsManager')!;
+  const rows = rowsManager.getRows();
 
   for (const col of props.columns) {
     // Skip if not visible? handled by template iteration
@@ -19,7 +21,7 @@ const summaryData = computed(() => {
 
     // Get values
     const getter = getterForProp(col.prop);
-    const cells = props.rows.map(row => getter(row, col.prop as any));
+    const cells = rows.map(row => getter(row, col.prop as TableColumnProp));
 
     let val: any = null;
     if (col.summaryFunc) {

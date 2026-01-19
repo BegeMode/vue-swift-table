@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, inject, type Ref } from 'vue';
 import type { CSSProperties } from 'vue';
 
 import type { TableColumn } from '../../types/table-column.type';
@@ -7,10 +7,15 @@ import type { IGroupedRows } from '../../types/grouped-rows';
 import DataTableRow from './DataTableRow.vue';
 import DataTableGroupHeader from './DataTableGroupHeader.vue';
 import DataTableSummaryRow from './DataTableSummaryRow.vue';
+import type { IPageManager, IRowInfo, IRowsManager, RowType } from '@/types/table';
+import type { ISortPropDir } from '@/types/sort-prop-dir.type';
 
 interface Props {
-  rows: Array<Record<string, unknown> | IGroupedRows | any>;
+  infiniteScroll?: boolean;
   columns: Array<TableColumn>;
+  page: number;
+  sorts?: ISortPropDir[];
+  groupRowsBy?: string[];
   columnStyles?: Record<string, CSSProperties>;
   innerWidth?: number;
   rowHeight: number;
@@ -21,20 +26,28 @@ interface Props {
   summaryRow?: boolean;
   summaryPosition?: 'top' | 'bottom';
   summaryHeight?: number;
-  expanded?: Array<any>;
+  expanded?: Set<RowType | IGroupedRows>;
   rowDetailHeight?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  rows: () => [],
+  page: 0,
   rowHeight: 50,
   selected: () => [],
   summaryHeight: 30,
-  expanded: () => [],
+  expanded: () => new Set(),
   rowDetailHeight: 0,
 });
 
-const emit = defineEmits(['scroll', 'update:scrollTop', 'row-select', 'activate', 'group-toggle', 'scrollbar-width']);
+const emit = defineEmits([
+  'scroll',
+  'update:scrollTop',
+  'row-select',
+  'activate',
+  'group-toggle',
+  'scrollbar-width',
+  'page',
+]);
 
 const SCROLL_THROTTLE = 16; // ~60fps
 const DEFAULT_VISIBLE_ROWS = 50;
@@ -46,12 +59,17 @@ const containerHeight = ref(props.rowHeight * DEFAULT_VISIBLE_ROWS);
 const containerWidth = ref(0);
 const visibleRowsCount = computed(() => Math.ceil(containerHeight.value / props.rowHeight) + 1);
 
-const firstVisibleRow = ref(0);
-const lastVisibleRow = ref(DEFAULT_VISIBLE_ROWS);
 const scrollLeft = ref(0);
+const scrollTop = ref(0);
 const offsetY = ref(0);
+const currentPage = ref(props.page);
 
-const visibleRows = ref<Record<string, any>[]>([]);
+const visibleRows = ref<IRowInfo[]>([]);
+
+const rowsManager: IRowsManager = inject('rowsManager')!;
+const pageManager: IPageManager = inject('pageManager')!;
+// Reactive trigger for rows data changes
+const rowsVersion = inject<Ref<number>>('rowsVersion')!;
 
 // State for scrollbars
 const scrollbarWidth = ref(0);
@@ -66,17 +84,30 @@ const checkScrollbar = () => {
 };
 
 const updateVisibleRows = () => {
-  const start = Math.max(0, firstVisibleRow.value);
-  lastVisibleRow.value = Math.min(props.rows.length, start + visibleRowsCount.value);
-  const length = lastVisibleRow.value - start;
-
-  visibleRows.value.length = length;
-  for (let i = 0; i < length; i++) {
-    visibleRows.value[i] = {
-      row: props.rows[start + i],
-      rowIndex: i,
-      expanded: expandedSet.value.has(start + i),
-    };
+  if (!scrollable.value) {
+    return;
+  }
+  // Pass page for paged mode, undefined for infinite scroll
+  const pageArg = props.infiniteScroll ? undefined : props.page;
+  rowsManager.fillVisibleRows(scrollTop.value, props.rowHeight, visibleRowsCount.value, visibleRows.value, pageArg);
+  if (!props.infiniteScroll) {
+    return;
+  }
+  const lastVisibleRow = visibleRows.value[visibleRows.value.length - 1];
+  if (!lastVisibleRow) {
+    return;
+  }
+  currentPage.value = lastVisibleRow.page;
+  let pageInfo = pageManager.getPageInfo(currentPage.value);
+  if (!pageInfo || pageInfo.isLast) {
+    return;
+  }
+  const maxPageIndex = pageInfo.start + pageInfo.size;
+  if (lastVisibleRow.index >= maxPageIndex - visibleRowsCount.value) {
+    pageInfo = pageManager.getPageInfo(currentPage.value + 1);
+    if (!pageInfo) {
+      currentPage.value += 1;
+    }
   }
 };
 
@@ -90,7 +121,7 @@ const handleScroll = () => {
   if (now - lastScrollTime < SCROLL_THROTTLE) return;
   lastScrollTime = now;
 
-  const scrollTop = scrollable.value.scrollTop;
+  scrollTop.value = scrollable.value.scrollTop;
 
   scrollLeft.value = scrollable.value.scrollLeft;
   if (rowsContainer.value) {
@@ -99,8 +130,7 @@ const handleScroll = () => {
 
   emit('scroll', { target: scrollable.value });
 
-  firstVisibleRow.value = Math.trunc(scrollTop / props.rowHeight);
-  offsetY.value = scrollTop % props.rowHeight;
+  offsetY.value = scrollTop.value % props.rowHeight;
 };
 
 const onWheel = (e: WheelEvent) => {
@@ -125,8 +155,6 @@ const updateContainerSize = (entries: ResizeObserverEntry[]) => {
 };
 
 onMounted(async () => {
-  updateVisibleRows();
-
   if (scrollable.value) {
     checkScrollbar();
     scrollable.value.addEventListener('scroll', rafHandleScroll);
@@ -138,8 +166,6 @@ onMounted(async () => {
     if (scrollable.value) {
       containerHeight.value = scrollable.value.clientHeight;
       containerWidth.value = scrollable.value.clientWidth;
-      firstVisibleRow.value = 0;
-      lastVisibleRow.value = Math.min(DEFAULT_VISIBLE_ROWS, props.rows.length);
     }
   }
 });
@@ -155,30 +181,20 @@ onUnmounted(() => {
   }
 });
 
-// const rowOffset = computed(() => {
-//   if (props.summaryRow && props.summaryPosition === 'top') {
-//     return props.summaryHeight;
-//   }
-//   return 0;
-// });
-
-const expandedIndices = computed(() => {
-  if (!props.expanded || props.expanded.length === 0 || !props.rowDetailHeight) return [];
-  const expandSet = new Set(props.expanded);
-  const indices: number[] = [];
-  props.rows.forEach((r, i) => {
-    if (expandSet.has(r)) indices.push(i);
-  });
-  return indices;
-});
-
-const expandedSet = computed(() => new Set(expandedIndices.value));
+const isRowExpanded = (row: IRowInfo) => {
+  return props.expanded?.has(row.data as RowType | IGroupedRows) ?? false;
+};
 
 const totalHeight = computed(() => {
-  const base = props.rowHeight * props.rows.length;
+  // Depend on rowsVersion to trigger recalculation when rows data changes
+  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+  rowsVersion.value;
+  // Pass page for paged mode, undefined for infinite scroll
+  const pageArg = props.infiniteScroll ? undefined : props.page;
+  const base = props.rowHeight * rowsManager.getRowsCount(pageArg);
   let detail = 0;
-  expandedIndices.value.forEach(i => {
-    if (i >= firstVisibleRow.value && i < lastVisibleRow.value) {
+  visibleRows.value.forEach(r => {
+    if (props.expanded?.has(r.data as RowType | IGroupedRows)) {
       detail += props.rowDetailHeight;
     }
   });
@@ -188,7 +204,50 @@ const totalHeight = computed(() => {
 
 const visibleRowsHeight = computed(() => containerHeight.value + offsetY.value);
 
-watch([() => props.rows, firstVisibleRow, containerHeight, expandedIndices], updateVisibleRows);
+watch(
+  [
+    () => props.sorts,
+    () => props.groupRowsBy,
+    scrollTop,
+    visibleRows,
+    containerHeight,
+    () => props.expanded,
+    rowsVersion,
+  ],
+  updateVisibleRows
+);
+
+watch(
+  () => props.page,
+  async (newVal, oldVal) => {
+    if (!scrollable.value) {
+      return;
+    }
+    if (props.infiniteScroll && oldVal) {
+      const pageInfo = pageManager.getPageInfo(newVal);
+      if (!pageInfo) return;
+
+      // Check if we're already scrolled within this page's range
+      const currentScrollTop = scrollable.value.scrollTop;
+      const pageStartScroll = pageInfo.start * props.rowHeight;
+      const pageEndScroll = (pageInfo.start + pageInfo.size) * props.rowHeight;
+
+      // If already in range, don't force scroll (user is scrolling naturally)
+      if (currentScrollTop >= pageStartScroll && currentScrollTop < pageEndScroll) {
+        return;
+      }
+
+      await nextTick();
+      scrollable.value.scrollTop = pageStartScroll;
+    } else {
+      updateVisibleRows();
+    }
+  }
+);
+
+watch(currentPage, () => {
+  emit('page', { page: currentPage.value });
+});
 </script>
 
 <template>
@@ -196,7 +255,6 @@ watch([() => props.rows, firstVisibleRow, containerHeight, expandedIndices], upd
     <div class="datatable-body-table">
       <DataTableSummaryRow
         v-if="summaryRow && summaryPosition === 'top'"
-        :rows="rows"
         :columns="columns"
         :columnStyles="columnStyles"
         :rowHeight="summaryHeight"
@@ -222,30 +280,30 @@ watch([() => props.rows, firstVisibleRow, containerHeight, expandedIndices], upd
           }"
           @wheel="onWheel"
         >
-          <template v-for="item in visibleRows" :key="item.rowIndex">
+          <template v-for="item in visibleRows" :key="item.uid">
             <DataTableGroupHeader
-              v-if="item.row.__isGroup"
-              :group="item.row"
-              :expanded="item.row.expanded"
+              v-if="item.data!.__isGroup"
+              :group="item.data as IGroupedRows"
+              :expanded="(item.data as IGroupedRows).expanded"
               :rowHeight="rowHeight"
               @toggle="emit('group-toggle', $event)"
             />
             <DataTableRow
               v-else
-              :row="item.row"
-              :rowIndex="item.rowIndex"
+              :row="item.data!"
+              :rowIndex="item.index"
               :columns="columns"
               :columnStyles="columnStyles"
               :rowHeight="rowHeight"
               :rowDetailHeight="rowDetailHeight"
-              :expanded="item.expanded"
-              :isSelected="selected?.includes(item.row)"
+              :expanded="isRowExpanded(item)"
+              :isSelected="selected?.includes(item.data)"
               :selectionType="selectionType"
-              @select="emit('row-select', { row: item.row, event: $event })"
-              @activate="emit('activate', { row: item.row, event: $event })"
+              @select="emit('row-select', { row: item.data, event: $event })"
+              @activate="emit('activate', { row: item.data, event: $event })"
             >
               <template #detail>
-                <slot name="rowDetail" :row="item.row"></slot>
+                <slot name="rowDetail" :row="item.data"></slot>
               </template>
             </DataTableRow>
           </template>
@@ -253,7 +311,6 @@ watch([() => props.rows, firstVisibleRow, containerHeight, expandedIndices], upd
       </div>
       <DataTableSummaryRow
         v-if="summaryRow && summaryPosition === 'bottom'"
-        :rows="rows"
         :columns="columns"
         :columnStyles="columnStyles"
         :rowHeight="summaryHeight"

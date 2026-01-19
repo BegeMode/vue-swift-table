@@ -216,11 +216,7 @@ watch(
         @dragleave="onDragLeave($event)"
         @drop="onDrop($event, col)"
       >
-        <span
-          class="datatable-header-cell-label"
-          :class="{ draggable: reorderable }"
-          @click="onColumnClick(col, $event)"
-        >
+        <span class="datatable-header-cell-label" :class="{ draggable: reorderable }">
           <HeaderSlotRenderer :column="col" />
           <span
             v-if="col.sortable !== false && sortDir(col)"

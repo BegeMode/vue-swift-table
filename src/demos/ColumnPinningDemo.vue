@@ -4,19 +4,17 @@ import DataTable from '../components/DataTable.vue';
 import type { TableColumn } from '../types/table-column.type';
 
 // Mock Data
-const rows = ref(
-  Array.from({ length: 50 }, (_, i) => ({
-    name: `Person ${i}`,
-    gender: i % 2 === 0 ? 'Male' : 'Female',
-    age: 20 + (i % 40),
-    email: `person${i}@example.com`,
-    phone: `555-01${i.toString().padStart(2, '0')}`,
-    address: `${i} Main St, Cityville, State, 12345`,
-    company: `Company ${i}`,
-    zip: `1234${i}`,
-    country: 'USA',
-  }))
-);
+const rows = Array.from({ length: 50 }, (_, i) => ({
+  name: `Person ${i}`,
+  gender: i % 2 === 0 ? 'Male' : 'Female',
+  age: 20 + (i % 40),
+  email: `person${i}@example.com`,
+  phone: `555-01${i.toString().padStart(2, '0')}`,
+  address: `${i} Main St, Cityville, State, 12345`,
+  company: `Company ${i}`,
+  zip: `1234${i}`,
+  country: 'USA',
+}));
 
 const columns = ref<TableColumn[]>([
   { prop: 'name', name: 'Name (Pinned Left)', width: 200, frozenLeft: true },
@@ -29,6 +27,13 @@ const columns = ref<TableColumn[]>([
   { prop: 'country', name: 'Country', width: 150 },
   { prop: 'company', name: 'Company (Pinned Right)', width: 200, frozenRight: true },
 ]);
+
+const getPageRows = (_page: number): Promise<{ rows: Array<Record<string, unknown>>; isLast: boolean }> => {
+  return Promise.resolve({
+    rows,
+    isLast: true,
+  });
+};
 </script>
 
 <template>
@@ -42,7 +47,14 @@ const columns = ref<TableColumn[]>([
     </div>
 
     <div class="table-wrapper">
-      <DataTable :rows="rows" :columns="columns" :rowHeight="50" :headerHeight="50" class="material" :height="500" />
+      <DataTable
+        :getPageRows="getPageRows"
+        :columns="columns"
+        :rowHeight="50"
+        :headerHeight="50"
+        class="material"
+        :height="500"
+      />
     </div>
   </div>
 </template>
