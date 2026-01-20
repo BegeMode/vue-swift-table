@@ -6,6 +6,7 @@ import { load10k } from './dataLoader';
 
 const infiniteScroll = ref(false);
 const totalPages = ref(100);
+const startPage = ref(1);
 
 const savedTotalPages = localStorage.getItem('allRowsAtOnce::totalPages');
 if (savedTotalPages) {
@@ -17,12 +18,21 @@ if (savedInfiniteScroll) {
   infiniteScroll.value = savedInfiniteScroll === 'true';
 }
 
+const savedStartPage = localStorage.getItem('allRowsAtOnce::startPage');
+if (savedStartPage) {
+  startPage.value = parseInt(savedStartPage);
+}
+
 watch(totalPages, () => {
   localStorage.setItem('allRowsAtOnce::totalPages', totalPages.value.toString());
 });
 
 watch(infiniteScroll, () => {
   localStorage.setItem('allRowsAtOnce::infiniteScroll', infiniteScroll.value.toString());
+});
+
+watch(startPage, () => {
+  localStorage.setItem('allRowsAtOnce::startPage', startPage.value.toString());
 });
 
 const columns = ref<TableColumn[]>([
@@ -62,6 +72,7 @@ const getPageRows = async (_page: number): Promise<{ rows: Array<Record<string, 
       <div class="controls">
         <label><input type="checkbox" v-model="infiniteScroll" /> Infinite Scroll</label>
         <label>Total pages: <input type="number" v-model="totalPages" :min="1" :max="10000" /></label>
+        <label>Start page: <input type="number" v-model="startPage" :min="1" :max="totalPages" /></label>
       </div>
     </div>
 
@@ -73,6 +84,7 @@ const getPageRows = async (_page: number): Promise<{ rows: Array<Record<string, 
         :headerHeight="50"
         :rowHeight="50"
         :totalPages="totalPages"
+        :page="startPage"
       />
     </div>
   </div>

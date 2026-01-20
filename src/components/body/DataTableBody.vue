@@ -10,6 +10,8 @@ import DataTableSummaryRow from './DataTableSummaryRow.vue';
 import type { IPageManager, IRowInfo, IRowsManager, RowType } from '@/types/table';
 import type { ISortPropDir } from '@/types/sort-prop-dir.type';
 
+const MAX_HEIGHT = 15_000_000; // browser limit in pixels
+
 interface Props {
   infiniteScroll?: boolean;
   columns: Array<TableColumn>;
@@ -89,7 +91,13 @@ const updateVisibleRows = () => {
   }
   // Pass page for paged mode, undefined for infinite scroll
   const pageArg = props.infiniteScroll ? undefined : props.page;
-  rowsManager.fillVisibleRows(scrollTop.value, props.rowHeight, visibleRowsCount.value, visibleRows.value, pageArg);
+  rowsManager.fillVisibleRows(
+    scrollTop.value * scrollYKoef.value,
+    props.rowHeight,
+    visibleRowsCount.value,
+    visibleRows.value,
+    pageArg
+  );
   if (!props.infiniteScroll) {
     return;
   }
@@ -99,14 +107,31 @@ const updateVisibleRows = () => {
   }
   currentPage.value = lastVisibleRow.page;
   let pageInfo = pageManager.getPageInfo(currentPage.value);
-  if (!pageInfo || pageInfo.isLast) {
+  if (!pageInfo) {
     return;
   }
-  const maxPageIndex = pageInfo.start + pageInfo.size;
-  if (lastVisibleRow.index >= maxPageIndex - visibleRowsCount.value) {
-    pageInfo = pageManager.getPageInfo(currentPage.value + 1);
-    if (!pageInfo) {
-      currentPage.value += 1;
+
+  // Check if scrolling down and next page is not loaded
+  if (!pageInfo.isLast) {
+    const maxPageIndex = pageInfo.start + pageInfo.size;
+    if (lastVisibleRow.index >= maxPageIndex - visibleRowsCount.value) {
+      const nextPageInfo = pageManager.getPageInfo(currentPage.value + 1);
+      if (!nextPageInfo) {
+        currentPage.value += 1;
+        return;
+      }
+    }
+  }
+
+  // Check if scrolling up and previous page is not loaded
+  const firstVisibleRow = visibleRows.value[0];
+  if (firstVisibleRow && currentPage.value > 1) {
+    const minPageIndex = pageInfo.start;
+    if (firstVisibleRow.index <= minPageIndex + visibleRowsCount.value) {
+      const prevPageInfo = pageManager.getPageInfo(currentPage.value - 1);
+      if (!prevPageInfo) {
+        currentPage.value -= 1;
+      }
     }
   }
 };
@@ -185,10 +210,7 @@ const isRowExpanded = (row: IRowInfo) => {
   return props.expanded?.has(row.data as RowType | IGroupedRows) ?? false;
 };
 
-const totalHeight = computed(() => {
-  // Depend on rowsVersion to trigger recalculation when rows data changes
-  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-  rowsVersion.value;
+const allRowsHeight = computed(() => {
   // Pass page for paged mode, undefined for infinite scroll
   const pageArg = props.infiniteScroll ? undefined : props.page;
   const base = props.rowHeight * rowsManager.getRowsCount(pageArg);
@@ -198,8 +220,21 @@ const totalHeight = computed(() => {
       detail += props.rowDetailHeight;
     }
   });
-
   return base + detail;
+});
+
+const totalHeight = computed(() => {
+  // Depend on rowsVersion to trigger recalculation when rows data changes
+  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+  rowsVersion.value;
+  return Math.min(allRowsHeight.value, MAX_HEIGHT);
+});
+
+const scrollYKoef = computed(() => {
+  const viewPortHeight = rowsContainer.value?.clientHeight ?? 0;
+  // if {allRowsHeight} > 15 million -> we have to apply koef on scroll
+  // if {allRowsHeight} <= 15 million -> {scrollYKoef} = 1
+  return (allRowsHeight.value - viewPortHeight) / (totalHeight.value - viewPortHeight);
 });
 
 const visibleRowsHeight = computed(() => containerHeight.value + offsetY.value);
@@ -248,6 +283,30 @@ watch(
 watch(currentPage, () => {
   emit('page', { page: currentPage.value });
 });
+
+// Set initial scroll position when data for the initial page is loaded
+let initialScrollSet = false;
+watch(
+  rowsVersion,
+  async () => {
+    if (initialScrollSet || props.page === 0) {
+      return;
+    }
+    if (!scrollable.value) {
+      return;
+    }
+    const pageInfo = pageManager.getPageInfo(props.page);
+    if (!pageInfo) {
+      return;
+    }
+    initialScrollSet = true;
+    await nextTick();
+    if (scrollable.value) {
+      scrollable.value.scrollTop = pageInfo.start * props.rowHeight;
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <template>
