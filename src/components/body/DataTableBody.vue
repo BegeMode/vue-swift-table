@@ -51,7 +51,6 @@ const emit = defineEmits([
   'page',
 ]);
 
-const SCROLL_THROTTLE = 16; // ~60fps
 const DEFAULT_VISIBLE_ROWS = 50;
 
 // State
@@ -136,16 +135,11 @@ const updateVisibleRows = () => {
   }
 };
 
-let lastScrollTime = 0;
 let resizeObserver: ResizeObserver | null = null;
+let scrollRafId: number | null = null;
 
 const handleScroll = () => {
   if (!scrollable.value) return;
-
-  const now = Date.now();
-  if (now - lastScrollTime < SCROLL_THROTTLE) return;
-  lastScrollTime = now;
-
   scrollTop.value = scrollable.value.scrollTop;
 
   scrollLeft.value = scrollable.value.scrollLeft;
@@ -158,14 +152,30 @@ const handleScroll = () => {
   offsetY.value = scrollTop.value % props.rowHeight;
 };
 
-const onWheel = (e: WheelEvent) => {
-  if (!scrollable.value) return;
-  scrollable.value.scrollTop += e.deltaY;
-  scrollable.value.scrollLeft += e.deltaX;
+const rafHandleScroll = () => {
+  // Cancel any pending RAF to prevent stacking
+  if (scrollRafId !== null) {
+    cancelAnimationFrame(scrollRafId);
+  }
+  scrollRafId = requestAnimationFrame(() => {
+    scrollRafId = null;
+    handleScroll();
+  });
 };
 
-const rafHandleScroll = () => {
-  requestAnimationFrame(handleScroll);
+/**
+ * Forward wheel events to the scrollable container.
+ * The rows container overlays the scrollable div, so we need to manually
+ * forward wheel events. Using scrollBy() for better native scroll behavior.
+ */
+const onWheel = (e: WheelEvent) => {
+  if (!scrollable.value) return;
+  e.preventDefault();
+  scrollable.value.scrollBy({
+    top: e.deltaY,
+    left: e.deltaX,
+    behavior: 'instant',
+  });
 };
 
 const updateContainerSize = (entries: ResizeObserverEntry[]) => {
@@ -198,6 +208,11 @@ onMounted(async () => {
 onUnmounted(() => {
   if (scrollable.value) {
     scrollable.value.removeEventListener('scroll', rafHandleScroll);
+  }
+
+  if (scrollRafId !== null) {
+    cancelAnimationFrame(scrollRafId);
+    scrollRafId = null;
   }
 
   if (resizeObserver) {
@@ -320,7 +335,7 @@ watch(
         class="datatable-summary-top"
       />
       <div class="datatable-body-scroll-area">
-        <div ref="scrollable" class="datatable-body-scrollable" @scroll="handleScroll">
+        <div ref="scrollable" class="datatable-body-scrollable">
           <div
             class="datatable-body-scroll-content"
             :style="{
@@ -426,6 +441,9 @@ watch(
     right: 0;
     bottom: 0;
     overflow: auto;
+    overscroll-behavior: contain;
+    scroll-behavior: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   &-scroll-content {
