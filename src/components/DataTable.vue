@@ -229,6 +229,17 @@ const onSort = (payload: { column: TableColumn; event?: MouseEvent }) => {
 // Pagination Logic
 // ------------------------------------------------------------------
 const internalPage = ref(0);
+const internalTotalPages = ref<number | undefined>(props.totalPages);
+
+watch(
+  () => props.totalPages,
+  val => {
+    internalTotalPages.value = val;
+    if (val) {
+      pageManager.setPageAsLast(val);
+    }
+  }
+);
 
 watch(
   () => props.page,
@@ -246,13 +257,22 @@ const onPage = async (event: { page: number }) => {
     }
     const data = await props.getPageRows(event.page);
     if (data.allRows) {
-      const totalPages = props.totalPages ?? Math.ceil(data.rows.length / 30);
+      const totalPages = internalTotalPages.value ?? Math.ceil(data.rows.length / 30);
       const pageSize = data.rows.length / totalPages;
       for (let i = 1; i <= totalPages; i++) {
         const pageData = data.rows.slice((i - 1) * pageSize, i * pageSize);
         rowsManager.addPage(pageData, i, i === totalPages);
       }
     } else {
+      if (!data.rows?.length) {
+        // no data, so previous page is the last
+        const pageInfo = pageManager.getPageInfo(event.page - 1);
+        if (pageInfo) {
+          pageManager.setPageAsLast(event.page - 1);
+          internalTotalPages.value = event.page - 1;
+        }
+        return;
+      }
       rowsManager.addPage(data.rows, event.page, data.isLast);
     }
     // Trigger reactive update for components depending on rows count
@@ -520,7 +540,7 @@ const onScroll = (e: Event) => {
     <DataTableFooter
       v-if="footerHeight"
       :footerHeight="footerHeight"
-      :totalPages="totalPages"
+      :totalPages="internalTotalPages"
       :page="internalPage || page"
       :pagerLeftArrowIcon="cssClasses.pagerLeftArrow as string"
       :pagerRightArrowIcon="cssClasses.pagerRightArrow as string"
