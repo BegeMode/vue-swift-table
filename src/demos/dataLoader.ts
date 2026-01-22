@@ -24,14 +24,20 @@ export async function load10k(delay?: number) {
   }
 }
 
-export async function loadPage10k(page: number, size: number, delay?: number) {
+export async function loadPage10k(page: number, size: number, search: string, delay?: number) {
   try {
     const module = await import('@/assets/data/10k.json');
-    const data = module.default.slice((page - 1) * size, page * size).map(enrichRow);
+    let data = module.default;
+    if (search) {
+      data = data.filter(row => {
+        return Object.values(row).some(value => value.toString().toLowerCase().includes(search.toLowerCase()));
+      });
+    }
+    const result = data.slice((page - 1) * size, page * size).map(enrichRow);
     if (delay) {
       await wait(delay);
     }
-    return data;
+    return result;
   } catch (e) {
     console.error('Failed to load data:', e);
   }

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import DataTable from '../components/DataTable.vue';
-import type { TableColumn } from '../types/table-column.type';
+import { VueSwiftTable, type TableColumn } from '@/index';
 
 // Mock Data
 const rows = Array.from({ length: 50 }, (_, i) => ({
@@ -73,7 +72,7 @@ const columns = computed(() => {
     </div>
 
     <div class="table-wrapper">
-      <DataTable
+      <vue-swift-table
         ref="table"
         :getPageRows="getPageRows"
         :columns="columns"
@@ -121,7 +120,7 @@ const columns = computed(() => {
             </div>
           </div>
         </template>
-      </DataTable>
+      </vue-swift-table>
     </div>
   </div>
 </template>

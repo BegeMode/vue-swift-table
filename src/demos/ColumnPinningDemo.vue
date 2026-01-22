@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import DataTable from '../components/DataTable.vue';
-import type { TableColumn } from '../types/table-column.type';
+import { VueSwiftTable, type TableColumn } from '@/index';
 
 // Mock Data
 const rows = Array.from({ length: 50 }, (_, i) => ({
@@ -47,7 +46,7 @@ const getPageRows = (_page: number): Promise<{ rows: Array<Record<string, unknow
     </div>
 
     <div class="table-wrapper">
-      <DataTable
+      <vue-swift-table
         :getPageRows="getPageRows"
         :columns="columns"
         :rowHeight="50"

@@ -4,6 +4,8 @@ import type { ISortPropDir } from '@/types/sort-prop-dir.type';
 // Type alias for table row
 export type RowType = Record<string, unknown>;
 
+export const DEFAULT_VISIBLE_ROWS = 50;
+
 export interface IPageInfo {
   page: number;
   start: number;

@@ -7,7 +7,7 @@ import type { IGroupedRows } from '../../types/grouped-rows';
 import DataTableRow from './DataTableRow.vue';
 import DataTableGroupHeader from './DataTableGroupHeader.vue';
 import DataTableSummaryRow from './DataTableSummaryRow.vue';
-import type { IPageManager, IRowInfo, IRowsManager, RowType } from '@/types/table';
+import { DEFAULT_VISIBLE_ROWS, type IPageManager, type IRowInfo, type IRowsManager, type RowType } from '@/types/table';
 import type { ISortPropDir } from '@/types/sort-prop-dir.type';
 
 const MAX_HEIGHT = 15_000_000; // browser limit in pixels
@@ -49,16 +49,19 @@ const emit = defineEmits([
   'group-toggle',
   'scrollbar-width',
   'page',
+  'visible-rows-count',
 ]);
-
-const DEFAULT_VISIBLE_ROWS = 50;
 
 // State
 const scrollable = ref<HTMLDivElement | null>(null);
 const rowsContainer = ref<HTMLDivElement | null>(null);
 const containerHeight = ref(props.rowHeight * DEFAULT_VISIBLE_ROWS);
 const containerWidth = ref(0);
-const visibleRowsCount = computed(() => Math.ceil(containerHeight.value / props.rowHeight) + 1);
+const visibleRowsCount = computed(() => {
+  const count = Math.ceil(containerHeight.value / props.rowHeight) + 1;
+  emit('visible-rows-count', count);
+  return count;
+});
 
 const scrollLeft = ref(0);
 const scrollTop = ref(0);
@@ -249,7 +252,11 @@ const scrollYKoef = computed(() => {
   const viewPortHeight = rowsContainer.value?.clientHeight ?? 0;
   // if {allRowsHeight} > 15 million -> we have to apply koef on scroll
   // if {allRowsHeight} <= 15 million -> {scrollYKoef} = 1
-  return (allRowsHeight.value - viewPortHeight) / (totalHeight.value - viewPortHeight);
+  const result = (allRowsHeight.value - viewPortHeight) / (totalHeight.value - viewPortHeight);
+  if (Number.isNaN(result)) {
+    return 1;
+  }
+  return result;
 });
 
 const visibleRowsHeight = computed(() => containerHeight.value + offsetY.value);

@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import DataTable from '@/components/DataTable.vue';
-import type { TableColumn } from '@/types/table-column.type';
+import { VueSwiftTable, type TableColumn } from '@/index';
 import { load10k } from './dataLoader';
 
 const infiniteScroll = ref(false);
 const totalPages = ref(100);
 const startPage = ref(1);
+const search = ref('');
+const table = ref<InstanceType<typeof VueSwiftTable> | null>(null);
 
 const savedTotalPages = localStorage.getItem('allRowsAtOnce::totalPages');
 if (savedTotalPages) {
@@ -57,12 +58,21 @@ const columns = ref<TableColumn[]>([
 ]);
 
 const getPageRows = async (_page: number): Promise<{ rows: Array<Record<string, unknown>>; allRows: boolean }> => {
-  const rows = (await load10k()) ?? [];
+  let rows = (await load10k()) ?? [];
+  if (search.value) {
+    rows = rows.filter(row => {
+      return Object.values(row).some(value => value.toString().toLowerCase().includes(search.value.toLowerCase()));
+    });
+  }
   return {
     rows,
     allRows: true,
   };
 };
+
+watch(search, () => {
+  table.value?.refresh();
+});
 </script>
 
 <template>
@@ -73,11 +83,13 @@ const getPageRows = async (_page: number): Promise<{ rows: Array<Record<string, 
         <label><input type="checkbox" v-model="infiniteScroll" /> Infinite Scroll</label>
         <label>Total pages: <input type="number" v-model="totalPages" :min="1" :max="10000" /></label>
         <label>Start page: <input type="number" v-model="startPage" :min="1" :max="totalPages" /></label>
+        <label>Search: <input type="text" v-model="search" /></label>
       </div>
     </div>
 
     <div class="table-wrapper">
-      <DataTable
+      <vue-swift-table
+        ref="table"
         :infiniteScroll="infiniteScroll"
         :getPageRows="getPageRows"
         :columns="columns"

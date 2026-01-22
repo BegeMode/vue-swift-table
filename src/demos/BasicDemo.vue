@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import DataTable from '@/components/DataTable.vue';
-import type { TableColumn } from '@/types/table-column.type';
-import type { SelectionType } from '@/types/selection.type';
+import { ref, watch } from 'vue';
+import { VueSwiftTable, type TableColumn, type SelectionType } from '@/index';
 import { loadPage10k } from './dataLoader';
 
 // Mock Data Generation
@@ -17,15 +15,16 @@ import { loadPage10k } from './dataLoader';
 //   }));
 // };
 
+const table = ref<InstanceType<typeof VueSwiftTable> | null>(null);
 const infiniteScroll = ref(false);
 
 // Pagination State
 const limit = ref(250);
 const footerHeight = ref(50);
-const externalPaging = ref(false);
 const groupRowsBy = ref<string[]>([]);
 const summaryRow = ref(false);
 const summaryPosition = ref<'top' | 'bottom'>('top');
+const search = ref('');
 
 // Selection State
 const selectionType = ref<SelectionType>('single');
@@ -63,12 +62,16 @@ const columns = ref<TableColumn[]>([
 ]);
 
 const getPageRows = async (page: number): Promise<{ rows: Array<Record<string, unknown>>; isLast: boolean }> => {
-  const rows = (await loadPage10k(page, limit.value, 200)) ?? [];
+  let rows = (await loadPage10k(page, limit.value, search.value, 200)) ?? [];
   return {
     rows,
     isLast: !rows.length || rows.length < limit.value,
   };
 };
+
+watch(search, () => {
+  table.value?.refresh();
+});
 
 const onSort = (event: Array<{ prop: string; dir: 'asc' | 'desc' }>) => {
   console.log('Sort Event:', event);
@@ -95,7 +98,6 @@ const onReorder = (newColumns: TableColumn[]) => {
         <label><input type="checkbox" v-model="infiniteScroll" /> Infinite Scroll</label>
         <label>Page Size: <input type="number" v-model="limit" /></label>
         <label>Footer Height: <input type="number" v-model="footerHeight" /></label>
-        <label><input type="checkbox" v-model="externalPaging" /> Server-side Paging</label>
         <div class="control-row">
           <label>
             Selection:
@@ -128,11 +130,13 @@ const onReorder = (newColumns: TableColumn[]) => {
             </select>
           </label>
         </div>
+        <label>Search: <input type="text" v-model="search" /></label>
       </div>
     </div>
 
     <div class="table-wrapper" :class="theme === 'dark' ? 'dark-wrapper' : ''">
-      <DataTable
+      <vue-swift-table
+        ref="table"
         :infiniteScroll="infiniteScroll"
         :getPageRows="getPageRows"
         :columns="columns"
@@ -141,7 +145,6 @@ const onReorder = (newColumns: TableColumn[]) => {
         :height="600"
         :pageSize="limit"
         :footerHeight="footerHeight"
-        :externalPaging="externalPaging"
         :selectionType="selectionType"
         :selected="selected"
         :theme="theme"

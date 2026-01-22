@@ -46,6 +46,7 @@ export class PageManager implements IPageManager {
 
   clear(): void {
     this.pages = new Map();
+    this.lastPage = null;
   }
 
   isFirstPage(page: number): boolean {

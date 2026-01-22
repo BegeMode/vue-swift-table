@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { computed, provide, toRefs, ref, watch, useSlots } from 'vue';
+
+defineOptions({
+  name: 'vue-swift-table',
+});
+
 import DataTableBody from '@/components/body/DataTableBody.vue';
 import DataTableHeader from '@/components/header/DataTableHeader.vue';
 import DataTableFooter from '@/components/footer/DataTableFooter.vue';
@@ -12,7 +17,7 @@ import type { SelectionType } from '@/types/selection.type';
 import type { ISortPropDir } from '@/types/sort-prop-dir.type';
 import type { IGroupedRows } from '@/types/grouped-rows';
 import { SortDirection } from '@/types/sort-direction.type';
-import type { RowType } from '@/types/table';
+import { DEFAULT_VISIBLE_ROWS, type RowType } from '@/types/table';
 import { PageManager } from '@/managers/pageManager';
 import { RowsManager } from '@/managers/rowsManager';
 
@@ -48,7 +53,6 @@ interface Props {
   totalRows?: number;
   pageSize?: number;
   page?: number; // page index
-  externalPaging?: boolean;
   externalSorting?: boolean;
 
   // Grouping & Tree
@@ -84,7 +88,6 @@ const props = withDefaults(defineProps<Props>(), {
   footerHeight: 50,
   columnMode: 'standard',
   reorderable: false,
-  externalPaging: false,
   externalSorting: false,
   groupExpansionDefault: false,
   lazyTree: false,
@@ -157,10 +160,6 @@ const toggleExpandDetail = (row: RowType) => {
   });
 };
 
-defineExpose({
-  toggleExpandDetail,
-});
-
 // ------------------------------------------------------------------
 // Sorting Logic
 // ------------------------------------------------------------------
@@ -230,6 +229,7 @@ const onSort = (payload: { column: TableColumn; event?: MouseEvent }) => {
 // ------------------------------------------------------------------
 const internalPage = ref(0);
 const internalTotalPages = ref<number | undefined>(props.totalPages);
+const visibleRowsCount = ref(DEFAULT_VISIBLE_ROWS);
 
 watch(
   () => props.totalPages,
@@ -249,42 +249,51 @@ watch(
 );
 
 const onPage = async (event: { page: number }) => {
-  if (!props.externalPaging) {
-    const pageInfo = pageManager.getPageInfo(event.page);
-    if (pageInfo) {
-      internalPage.value = event.page;
+  const pageInfo = pageManager.getPageInfo(event.page);
+  if (pageInfo) {
+    internalPage.value = event.page;
+    return;
+  }
+  const data = await props.getPageRows(event.page);
+  if (data.allRows) {
+    let totalPages = internalTotalPages.value ?? Math.ceil(data.rows.length / 30);
+    let pageSize = Math.ceil(data.rows.length / totalPages);
+    if (pageSize < visibleRowsCount.value) {
+      pageSize = visibleRowsCount.value;
+      totalPages = Math.ceil(data.rows.length / pageSize);
+    }
+    if (internalTotalPages.value) {
+      internalTotalPages.value = totalPages;
+    }
+    for (let i = 1; i <= totalPages; i++) {
+      const pageData = data.rows.slice((i - 1) * pageSize, i * pageSize);
+      if (pageData.length === 0) {
+        pageManager.setPageAsLast(i - 1);
+        break;
+      }
+      rowsManager.addPage(pageData, i, i === totalPages);
+    }
+  } else {
+    if (!data.rows?.length) {
+      // no data, so previous page is the last
+      const pageInfo = pageManager.getPageInfo(event.page - 1);
+      if (pageInfo) {
+        pageManager.setPageAsLast(event.page - 1);
+        internalTotalPages.value = event.page - 1;
+      }
       return;
     }
-    const data = await props.getPageRows(event.page);
-    if (data.allRows) {
-      const totalPages = internalTotalPages.value ?? Math.ceil(data.rows.length / 30);
-      const pageSize = data.rows.length / totalPages;
-      for (let i = 1; i <= totalPages; i++) {
-        const pageData = data.rows.slice((i - 1) * pageSize, i * pageSize);
-        rowsManager.addPage(pageData, i, i === totalPages);
-      }
-    } else {
-      if (!data.rows?.length) {
-        // no data, so previous page is the last
-        const pageInfo = pageManager.getPageInfo(event.page - 1);
-        if (pageInfo) {
-          pageManager.setPageAsLast(event.page - 1);
-          internalTotalPages.value = event.page - 1;
-        }
-        return;
-      }
-      rowsManager.addPage(data.rows, event.page, data.isLast);
-    }
-    // Trigger reactive update for components depending on rows count
-    rowsVersion.value++;
-
-    // Apply current sort to newly added data
-    if (internalSorts.value.length > 0) {
-      rowsManager.sort(internalSorts.value);
-    }
-
-    internalPage.value = event.page;
+    rowsManager.addPage(data.rows, event.page, data.isLast);
   }
+  // Trigger reactive update for components depending on rows count
+  rowsVersion.value++;
+
+  // Apply current sort to newly added data
+  if (internalSorts.value.length > 0) {
+    rowsManager.sort(internalSorts.value);
+  }
+
+  internalPage.value = event.page;
   emit('page', event);
 };
 
@@ -485,6 +494,23 @@ const onScroll = (e: Event) => {
   offsetX.value = target.scrollLeft;
   emit('scroll', e);
 };
+
+const reset = () => {
+  pageManager.clear();
+  rowsManager.clear();
+  internalTotalPages.value = props.totalPages;
+};
+
+const refresh = () => {
+  reset();
+  onPage({ page: 1 });
+};
+
+defineExpose({
+  toggleExpandDetail,
+  reset,
+  refresh,
+});
 </script>
 
 <template>
@@ -530,6 +556,7 @@ const onScroll = (e: Event) => {
       @group-toggle="onGroupToggle"
       @scrollbar-width="scrollbarWidth = $event"
       @page="onPage"
+      @visible-rows-count="visibleRowsCount = $event"
     >
       <template #rowDetail="scope">
         <slot name="rowDetail" v-bind="scope"></slot>

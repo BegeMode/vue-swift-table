@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import DataTable from '@/components/DataTable.vue';
-import type { TableColumn } from '@/types/table-column.type';
+import { VueSwiftTable, type TableColumn } from '@/index';
 
 const rows = Array.from({ length: 15 }, (_, i) => ({
   name: `User ${i}`,
@@ -34,7 +33,13 @@ const columns = ref<TableColumn[]>([
     </div>
 
     <div class="table-wrapper">
-      <DataTable :getPageRows="getPageRows" :columns="columns" :rowHeight="60" :headerHeight="50" class="material">
+      <vue-swift-table
+        :getPageRows="getPageRows"
+        :columns="columns"
+        :rowHeight="60"
+        :headerHeight="50"
+        class="material"
+      >
         <!-- Header Templates -->
         <template #header-name="{ column }">
           <span>Holla! {{ column.name }}</span>
@@ -68,7 +73,7 @@ const columns = ref<TableColumn[]>([
             <span style="position: relative; z-index: 1; padding: 5px">{{ row.age }}</span>
           </div>
         </template>
-      </DataTable>
+      </vue-swift-table>
     </div>
   </div>
 </template>
