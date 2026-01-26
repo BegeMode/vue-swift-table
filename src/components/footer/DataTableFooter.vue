@@ -5,7 +5,6 @@ import type { IPageManager, IRowsManager } from '@/types/table';
 
 interface Props {
   totalPages?: number;
-  totalRows?: number;
   page: number;
   footerHeight: number;
   totalMessage?: string;
@@ -45,11 +44,8 @@ const curPageText = computed(() => {
   // Depend on rowsVersion to trigger recalculation when rows data changes
   // eslint-disable-next-line @typescript-eslint/no-unused-expressions
   rowsVersion.value;
-  const { totalRows, page } = props;
-  let rowCount = totalRows;
-  if (!rowCount) {
-    rowCount = rowsManager.getLoadedRowsCount();
-  }
+  const { page } = props;
+  const rowCount = rowsManager.getRowsCount();
   if (!rowCount) {
     return `0 ${props.totalMessage}`;
   }

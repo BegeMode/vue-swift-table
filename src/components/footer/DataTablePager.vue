@@ -28,11 +28,11 @@ const pageManager = inject('pageManager') as IPageManager;
 
 const pages = computed(() => {
   const cur = page.value;
-  const total = totalPages.value || pageManager.totalPages || 1;
+  const total = Math.max(totalPages.value || 0, pageManager.totalPages, cur);
   const max = 5;
 
   if (total <= max) {
-    return Array.from({ length: total }, (_, i) => i + 1);
+    return Array.from({ length: max }, (_, i) => i + 1);
   }
 
   let start = cur - 2;

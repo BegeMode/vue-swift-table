@@ -97,13 +97,11 @@ src/
 
 | Prop             | Тип                                            | Описание                    |
 | ---------------- | ---------------------------------------------- | --------------------------- |
-| `rows`           | `Array<T>`                                     | Данные для отображения      |
 | `columns`        | `Array<Column>`                                | Конфигурация колонок        |
 | `rowHeight`      | `number`                                       | Фиксированная высота строки |
 | `headerHeight`   | `number`                                       | Высота заголовка            |
 | `infiniteScroll` | `boolean`                                      | Автоподгрузка при скролле   |
 | `getPageRows`    | `(page) => Promise<{rows, isLast?, allRows?}>` | Callback загрузки данных    |
-| `pageSize`       | `number`                                       | Записей на странице         |
 | `selectionType`  | `'single' \| 'multi' \| 'checkbox'`            | Тип выделения               |
 | `sortType`       | `'single' \| 'multi'`                          | Тип сортировки              |
 
@@ -112,7 +110,6 @@ src/
 - `page` — смена страницы
 - `sort` — изменение сортировки
 - `select` — выделение строк
-- `scroll-end` — достижение конца списка
 - `activate` — клик по строке/ячейке
 
 ## Команды
@@ -134,9 +131,7 @@ pnpm prettier
 
 ## Ссылки на документацию
 
-- [VUE3_PORT_SPEC.md](../../../VUE3_PORT_SPEC.md) — полная спецификация портирования
 - [IMPLEMENTATION_STATUS.md](../../../IMPLEMENTATION_STATUS.md) — статус реализации
-- [TASKS_FOR_NEXT_AGENT.md](../../../TASKS_FOR_NEXT_AGENT.md) — задачи для следующих сессий
 
 ## При работе с файлами
 

@@ -12,6 +12,17 @@ import type { ISortPropDir } from '@/types/sort-prop-dir.type';
 
 const MAX_HEIGHT = 15_000_000; // browser limit in pixels
 
+/**
+ * Scroll source tracking:
+ * - 'none': Initial state or after render without scroll
+ * - 'user': User initiated scroll (wheel, drag scrollbar)
+ * - 'programmatic': Code-initiated scroll (initial position, page change)
+ *
+ * We only emit 'page' events to load next/prev pages when scroll is user-initiated.
+ * Programmatic scrolls (setting initial position or jumping to page) should not trigger page loads.
+ */
+type ScrollSource = 'none' | 'user' | 'programmatic';
+
 interface Props {
   infiniteScroll?: boolean;
   columns: Array<TableColumn>;
@@ -65,6 +76,7 @@ const visibleRowsCount = computed(() => {
 
 const scrollLeft = ref(0);
 const scrollTop = ref(0);
+// for smoother scrolling
 const offsetY = ref(0);
 const currentPage = ref(props.page);
 
@@ -74,6 +86,14 @@ const rowsManager: IRowsManager = inject('rowsManager')!;
 const pageManager: IPageManager = inject('pageManager')!;
 // Reactive trigger for rows data changes
 const rowsVersion = inject<Ref<number>>('rowsVersion')!;
+
+// Track scroll source to avoid page loads on programmatic scrolls
+const scrollSource = ref<ScrollSource>('none');
+// Track if initial scroll position for non-zero page has been set
+let isInitialized = false;
+// Track last scroll position to determine scroll direction
+let lastScrollTop = 0;
+let scrollDirection: 'up' | 'down' = 'down';
 
 // State for scrollbars
 const scrollbarWidth = ref(0);
@@ -100,21 +120,25 @@ const updateVisibleRows = () => {
     visibleRows.value,
     pageArg
   );
-  if (!props.infiniteScroll) {
+
+  // Only check for next/prev page loading on user-initiated scrolls
+  // Skip for: non-infinite modes, uninitialized state, or programmatic scrolls
+  if (!props.infiniteScroll || !isInitialized || scrollSource.value !== 'user') {
     return;
   }
+
   const lastVisibleRow = visibleRows.value[visibleRows.value.length - 1];
   if (!lastVisibleRow) {
     return;
   }
   currentPage.value = lastVisibleRow.page;
-  let pageInfo = pageManager.getPageInfo(currentPage.value);
+  const pageInfo = pageManager.getPageInfo(currentPage.value);
   if (!pageInfo) {
     return;
   }
 
   // Check if scrolling down and next page is not loaded
-  if (!pageInfo.isLast) {
+  if (scrollDirection === 'down' && !pageInfo.isLast) {
     const maxPageIndex = pageInfo.start + pageInfo.size;
     if (lastVisibleRow.index >= maxPageIndex - visibleRowsCount.value) {
       const nextPageInfo = pageManager.getPageInfo(currentPage.value + 1);
@@ -126,13 +150,15 @@ const updateVisibleRows = () => {
   }
 
   // Check if scrolling up and previous page is not loaded
-  const firstVisibleRow = visibleRows.value[0];
-  if (firstVisibleRow && currentPage.value > 1) {
-    const minPageIndex = pageInfo.start;
-    if (firstVisibleRow.index <= minPageIndex + visibleRowsCount.value) {
-      const prevPageInfo = pageManager.getPageInfo(currentPage.value - 1);
-      if (!prevPageInfo) {
-        currentPage.value -= 1;
+  if (scrollDirection === 'up' && currentPage.value > 1) {
+    const firstVisibleRow = visibleRows.value[0];
+    if (firstVisibleRow && currentPage.value > 1) {
+      const minPageIndex = pageInfo.start;
+      if (firstVisibleRow.index <= minPageIndex + visibleRowsCount.value) {
+        const prevPageInfo = pageManager.getPageInfo(currentPage.value - 1);
+        if (!prevPageInfo) {
+          currentPage.value -= 1;
+        }
       }
     }
   }
@@ -140,10 +166,43 @@ const updateVisibleRows = () => {
 
 let resizeObserver: ResizeObserver | null = null;
 let scrollRafId: number | null = null;
+// Timer to reset scrollSource after user stops scrolling
+let scrollResetTimerId: ReturnType<typeof setTimeout> | null = null;
 
 const handleScroll = () => {
-  if (!scrollable.value) return;
+  if (!scrollable.value) {
+    return;
+  }
+
+  // Clear any pending reset timer
+  if (scrollResetTimerId !== null) {
+    clearTimeout(scrollResetTimerId);
+    scrollResetTimerId = null;
+  }
+
+  // If scroll was programmatic, reset to 'none' after processing
+  // If scroll was from user, mark as 'user'
+  if (scrollSource.value === 'programmatic') {
+    // Programmatic scroll event - reset for next scroll
+    scrollSource.value = 'none';
+  } else {
+    // This is user-initiated scroll
+    scrollSource.value = 'user';
+
+    // Reset to 'none' after user stops scrolling (allows paginator to work)
+    scrollResetTimerId = setTimeout(() => {
+      scrollSource.value = 'none';
+      scrollResetTimerId = null;
+    }, 200);
+  }
+
+  lastScrollTop = scrollTop.value;
   scrollTop.value = scrollable.value.scrollTop;
+  if (lastScrollTop < scrollTop.value) {
+    scrollDirection = 'down';
+  } else {
+    scrollDirection = 'up';
+  }
 
   scrollLeft.value = scrollable.value.scrollLeft;
   if (rowsContainer.value) {
@@ -218,6 +277,11 @@ onUnmounted(() => {
     scrollRafId = null;
   }
 
+  if (scrollResetTimerId !== null) {
+    clearTimeout(scrollResetTimerId);
+    scrollResetTimerId = null;
+  }
+
   if (resizeObserver) {
     resizeObserver.disconnect();
     resizeObserver = null;
@@ -229,6 +293,9 @@ const isRowExpanded = (row: IRowInfo) => {
 };
 
 const allRowsHeight = computed(() => {
+  // Depend on rowsVersion to trigger recalculation when rows data changes
+  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+  rowsVersion.value;
   // Pass page for paged mode, undefined for infinite scroll
   const pageArg = props.infiniteScroll ? undefined : props.page;
   const base = props.rowHeight * rowsManager.getRowsCount(pageArg);
@@ -242,9 +309,6 @@ const allRowsHeight = computed(() => {
 });
 
 const totalHeight = computed(() => {
-  // Depend on rowsVersion to trigger recalculation when rows data changes
-  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-  rowsVersion.value;
   return Math.min(allRowsHeight.value, MAX_HEIGHT);
 });
 
@@ -280,6 +344,20 @@ watch(
     if (!scrollable.value) {
       return;
     }
+
+    // If user is actively scrolling, never force scroll position changes
+    // This prevents jumps when page change is triggered by user scroll
+    if (props.infiniteScroll && scrollSource.value === 'user') {
+      return;
+    }
+
+    // If props.page matches currentPage, this is an "echo" from our own emit
+    // (user scrolled -> currentPage changed -> emit('page') -> parent updated props.page)
+    // In this case, don't force scroll position
+    if (props.infiniteScroll && newVal === currentPage.value) {
+      return;
+    }
+
     if (props.infiniteScroll && oldVal) {
       const pageInfo = pageManager.getPageInfo(newVal);
       if (!pageInfo) return;
@@ -294,9 +372,14 @@ watch(
         return;
       }
 
+      // Set scroll position
       await nextTick();
+      scrollSource.value = 'programmatic';
       scrollable.value.scrollTop = pageStartScroll;
     } else {
+      if (!props.infiniteScroll) {
+        scrollable.value.scrollTop = 0;
+      }
       updateVisibleRows();
     }
   }
@@ -306,12 +389,14 @@ watch(currentPage, () => {
   emit('page', { page: currentPage.value });
 });
 
-// Set initial scroll position when data for the initial page is loaded
-let initialScrollSet = false;
 watch(
   rowsVersion,
   async () => {
-    if (initialScrollSet || props.page === 0) {
+    if (!props.infiniteScroll) {
+      isInitialized = true;
+      return;
+    }
+    if (isInitialized || props.page === 0) {
       return;
     }
     if (!scrollable.value) {
@@ -321,9 +406,11 @@ watch(
     if (!pageInfo) {
       return;
     }
-    initialScrollSet = true;
+    // Mark as initialized and set programmatic scroll
+    isInitialized = true;
     await nextTick();
     if (scrollable.value) {
+      scrollSource.value = 'programmatic';
       scrollable.value.scrollTop = pageInfo.start * props.rowHeight;
     }
   },
@@ -361,17 +448,17 @@ watch(
           }"
           @wheel="onWheel"
         >
-          <template v-for="item in visibleRows" :key="item.uid">
+          <template v-for="(item, index) in visibleRows" :key="index">
             <DataTableGroupHeader
-              v-if="item.data!.__isGroup"
+              v-if="item.data?.__isGroup"
               :group="item.data as IGroupedRows"
               :expanded="(item.data as IGroupedRows).expanded"
               :rowHeight="rowHeight"
               @toggle="emit('group-toggle', $event)"
             />
             <DataTableRow
-              v-else
-              :row="item.data!"
+              v-else-if="item.data"
+              :row="item.data"
               :rowIndex="item.index"
               :columns="columns"
               :columnStyles="columnStyles"

@@ -50,8 +50,6 @@ interface Props {
   // Paging & Scrolling
   infiniteScroll?: boolean;
   totalPages?: number;
-  totalRows?: number;
-  pageSize?: number;
   page?: number; // page index
   externalSorting?: boolean;
 
@@ -119,7 +117,6 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits([
   'update:sort',
   'sort',
-  'scroll-end',
   'page',
   'select',
   'activate',
@@ -219,7 +216,9 @@ const onSort = (payload: { column: TableColumn; event?: MouseEvent }) => {
   }
 
   internalSorts.value = newSorts;
-  rowsManager.sort(newSorts);
+  if (!props.externalSorting) {
+    rowsManager.sort(newSorts);
+  }
   emit('sort', newSorts);
   emit('update:sort', newSorts);
 };
@@ -244,7 +243,7 @@ watch(
 watch(
   () => props.page,
   val => {
-    if (val !== undefined) internalPage.value = val;
+    onPage({ page: val });
   }
 );
 
@@ -285,15 +284,15 @@ const onPage = async (event: { page: number }) => {
     }
     rowsManager.addPage(data.rows, event.page, data.isLast);
   }
-  // Trigger reactive update for components depending on rows count
-  rowsVersion.value++;
 
   // Apply current sort to newly added data
-  if (internalSorts.value.length > 0) {
+  if (!props.externalSorting && internalSorts.value.length > 0) {
     rowsManager.sort(internalSorts.value);
   }
 
   internalPage.value = event.page;
+  // Trigger reactive update for components depending on rows count
+  rowsVersion.value++;
   emit('page', event);
 };
 
@@ -373,7 +372,7 @@ const onRowSelect = ({ row, type: _type, event }: { row: RowType; type?: string;
 const onSelectAll = () => {
   // Basic implementation: Toggle all visible or all rows
   // For now, let's select all rows if not all selected, otherwise clear.
-  const allSelected = selectedState.value.length === (props.totalRows || rowsManager.getRowsCount());
+  const allSelected = selectedState.value.length === rowsManager.getRowsCount();
   if (allSelected) {
     selectedState.value = [];
   } else {
@@ -526,9 +525,7 @@ defineExpose({
       :sorts="internalSorts"
       :sortType="sortType"
       :selectionType="selectionType"
-      :allRowsSelected="
-        selectedState.length === (props.totalRows || rowsManager.getRowsCount()) && rowsManager.getRowsCount() > 0
-      "
+      :allRowsSelected="selectedState.length === rowsManager.getRowsCount() && rowsManager.getRowsCount() > 0"
       @sort="onSort"
       @select-all="onSelectAll"
       @column-reorder="onColumnReorder"
