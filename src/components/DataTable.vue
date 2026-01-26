@@ -16,7 +16,6 @@ import type { SortType } from '@/types/sort.type';
 import type { SelectionType } from '@/types/selection.type';
 import type { ISortPropDir } from '@/types/sort-prop-dir.type';
 import type { IGroupedRows } from '@/types/grouped-rows';
-import { SortDirection } from '@/types/sort-direction.type';
 import { DEFAULT_VISIBLE_ROWS, type RowType } from '@/types/table';
 import { PageManager } from '@/managers/pageManager';
 import { RowsManager } from '@/managers/rowsManager';
@@ -115,15 +114,13 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits([
-  'update:sort',
+  'update:sorts',
   'sort',
   'page',
   'select',
   'activate',
   'tree-action',
   'group-toggle',
-  'update:selected',
-  'scroll',
   'update:selected',
   'scroll',
   'reorder',
@@ -166,7 +163,12 @@ watch(
   () => props.sorts,
   val => {
     internalSorts.value = val || [];
-  }
+    if (!props.externalSorting && internalSorts.value.length > 0) {
+      rowsManager.sort(internalSorts.value);
+      rowsVersion.value++;
+    }
+  },
+  { immediate: true }
 );
 
 const onSort = (payload: { column: TableColumn; event?: MouseEvent }) => {
@@ -187,8 +189,8 @@ const onSort = (payload: { column: TableColumn; event?: MouseEvent }) => {
     if (existingIdx > -1) {
       const sortItem = newSorts[existingIdx];
       if (sortItem) {
-        if (sortItem.dir === SortDirection.asc) {
-          sortItem.dir = SortDirection.desc;
+        if (sortItem.dir === 'asc') {
+          sortItem.dir = 'desc';
         } else {
           // Remove from list
           newSorts.splice(existingIdx, 1);
@@ -196,22 +198,22 @@ const onSort = (payload: { column: TableColumn; event?: MouseEvent }) => {
       }
     } else {
       // Add to end
-      newSorts.push({ prop, dir: SortDirection.asc });
+      newSorts.push({ prop, dir: 'asc' });
     }
   } else {
     // Single Sort logic (Replace)
     if (existingIdx > -1) {
       const sortItem = newSorts[existingIdx];
       if (sortItem) {
-        if (sortItem.dir === SortDirection.asc) {
-          newSorts = [{ prop, dir: SortDirection.desc }];
+        if (sortItem.dir === 'asc') {
+          newSorts = [{ prop, dir: 'desc' }];
         } else {
           newSorts = [];
         }
       }
     } else {
       // New column
-      newSorts = [{ prop, dir: SortDirection.asc }];
+      newSorts = [{ prop, dir: 'asc' }];
     }
   }
 
@@ -220,7 +222,7 @@ const onSort = (payload: { column: TableColumn; event?: MouseEvent }) => {
     rowsManager.sort(newSorts);
   }
   emit('sort', newSorts);
-  emit('update:sort', newSorts);
+  emit('update:sorts', newSorts);
 };
 
 // ------------------------------------------------------------------

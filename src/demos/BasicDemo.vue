@@ -62,7 +62,7 @@ const columns = ref<TableColumn[]>([
 ]);
 
 const getPageRows = async (page: number): Promise<{ rows: Array<Record<string, unknown>>; isLast: boolean }> => {
-  let rows = (await loadPage10k(page, limit.value, search.value, 200)) ?? [];
+  let rows = (await loadPage10k(page, limit.value, search.value, [], 200)) ?? [];
   return {
     rows,
     isLast: !rows.length || rows.length < limit.value,

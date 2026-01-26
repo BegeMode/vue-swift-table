@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { VueSwiftTable, type TableColumn } from '@/index';
-import { loadPage10k } from './dataLoader';
+import { VueSwiftTable, type TableColumn, type ISortPropDir } from '@/index';
+import { loadPage10k, type TSort } from './dataLoader';
 
 const infiniteScroll = ref(false);
 const startPage = ref(1);
 const pageSize = ref(20);
 const search = ref('');
+const sorts = ref<ISortPropDir[]>([]);
 const table = ref<InstanceType<typeof VueSwiftTable> | null>(null);
 
 const savedPageSize = localStorage.getItem('rowsLoadedPageByPage::pageSize');
@@ -58,7 +59,7 @@ const columns = ref<TableColumn[]>([
 ]);
 
 const getPageRows = async (page: number): Promise<{ rows: Array<Record<string, unknown>>; isLast: boolean }> => {
-  const rows = (await loadPage10k(page, pageSize.value, search.value)) ?? [];
+  const rows = (await loadPage10k(page, pageSize.value, search.value, sorts.value as any)) ?? [];
   return {
     rows,
     isLast: !rows.length || rows.length < pageSize.value,
@@ -67,6 +68,12 @@ const getPageRows = async (page: number): Promise<{ rows: Array<Record<string, u
 
 const onPage = (event: { page: number }) => {
   console.log('onPage', event.page);
+};
+
+const onSort = (payload: ISortPropDir[]) => {
+  console.log('onSort', payload);
+  sorts.value = payload as TSort[];
+  table.value?.refresh();
 };
 
 watch(search, () => {
@@ -95,7 +102,9 @@ watch(search, () => {
         :headerHeight="50"
         :rowHeight="50"
         :page="startPage"
+        :externalSorting="true"
         @page="onPage"
+        @sort="onSort"
       />
     </div>
   </div>

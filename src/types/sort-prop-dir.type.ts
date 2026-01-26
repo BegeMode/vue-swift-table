@@ -1,5 +1,6 @@
-import { SortDirection } from '@/types/sort-direction.type';
 import type { TableColumn, TableColumnProp } from '@/types/table-column.type';
+
+export type SortDirection = 'asc' | 'desc';
 
 export interface ISortPropDir {
   dir: SortDirection;

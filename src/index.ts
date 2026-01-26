@@ -14,7 +14,6 @@ export default VueSwiftTable;
 export type { TableColumn } from './types/table-column.type';
 export type { SortType } from './types/sort.type';
 export type { SelectionType } from './types/selection.type';
-export type { ISortPropDir } from './types/sort-prop-dir.type';
+export { type ISortPropDir, type SortDirection } from './types/sort-prop-dir.type';
 export type { IGroupedRows } from './types/grouped-rows';
-export { SortDirection } from './types/sort-direction.type';
 export type { RowType } from './types/table';
