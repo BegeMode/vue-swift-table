@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { RowsManager } from './rowsManager';
 import { PageManager } from './pageManager';
 import type { IRowInfo, RowType } from '@/types/table';
-import { SortDirection } from '@/types/sort-direction.type';
 
 describe('RowsManager', () => {
   let pageManager: PageManager;
@@ -198,7 +197,7 @@ describe('RowsManager', () => {
       ];
       rowsManager.addPage(rows, 1);
 
-      rowsManager.sort([{ prop: 'name', dir: SortDirection.asc }]);
+      rowsManager.sort([{ prop: 'name', dir: 'asc' }]);
 
       const visible: IRowInfo[] = [];
       rowsManager.fillVisibleRows(0, 50, 10, visible);
@@ -216,7 +215,7 @@ describe('RowsManager', () => {
       ];
       rowsManager.addPage(rows, 1);
 
-      rowsManager.sort([{ prop: 'age', dir: SortDirection.desc }]);
+      rowsManager.sort([{ prop: 'age', dir: 'desc' }]);
 
       const visible: IRowInfo[] = [];
       rowsManager.fillVisibleRows(0, 50, 10, visible);
@@ -238,7 +237,7 @@ describe('RowsManager', () => {
       const page1Info = pageManager.getPageInfo(1);
       expect(page1Info).toBeNull(); // Page 1 not loaded, but placeholders created
 
-      rowsManager.sort([{ prop: 'name', dir: SortDirection.asc }]);
+      rowsManager.sort([{ prop: 'name', dir: 'asc' }]);
 
       const visible: IRowInfo[] = [];
       rowsManager.fillVisibleRows(0, 50, 10, visible);

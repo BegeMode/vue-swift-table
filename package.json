@@ -1,11 +1,25 @@
 {
   "name": "vue-swift-table",
-  "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
+  "main": "dist/vue-swift-table.umd.js",
+  "module": "dist/vue-swift-table.es.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/vue-swift-table.es.js",
+      "require": "./dist/vue-swift-table.umd.js"
+    },
+    "./style.css": "./dist/vue-swift-table.css"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
+    "build:lib": "vue-tsc -b && vite build --mode library",
     "preview": "vite preview",
     "prettier": "prettier --write .",
     "test": "vitest",

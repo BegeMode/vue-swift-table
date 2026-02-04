@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref, shallowRef } from 'vue';
-import BasicDemo from './demos/BasicDemo.vue';
-import RowDetailDemo from './demos/RowDetailDemo.vue';
-import ColumnPinningDemo from './demos/ColumnPinningDemo.vue';
-import TemplateDemo from './demos/TemplateDemo.vue';
-import AllRowsAtOnceDemo from './demos/AllRowsAtOnce.vue';
-import RowsLoadedPageByPageDemo from './demos/RowsLoadedPageByPage.vue';
+import BasicDemo from './BasicDemo.vue';
+import RowDetailDemo from './RowDetailDemo.vue';
+import ColumnPinningDemo from './ColumnPinningDemo.vue';
+import TemplateDemo from './TemplateDemo.vue';
+import AllRowsAtOnceDemo from './AllRowsAtOnce.vue';
+import RowsLoadedPageByPageDemo from './RowsLoadedPageByPage.vue';
 
 const tabs = [
   { name: 'Basic Features', component: BasicDemo },
@@ -50,7 +50,7 @@ const selectTab = (index: number) => {
 </template>
 
 <style lang="scss">
-@use './styles/index.scss';
+@use '@/styles/index.scss';
 
 body {
   margin: 0;

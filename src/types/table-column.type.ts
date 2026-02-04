@@ -1,6 +1,6 @@
-import { SortDirection } from './sort-direction.type';
 import type { VNode } from 'vue';
-import type { ValueGetter } from '../utils/column-prop-getters';
+import type { ValueGetter } from '@/utils/column-prop-getters';
+import type { SortDirection } from '@/types/sort-prop-dir.type';
 
 export type TComparator = (
   propA: string,

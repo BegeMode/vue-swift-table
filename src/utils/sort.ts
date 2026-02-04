@@ -1,5 +1,5 @@
 import { SortType } from '@/types/sort.type';
-import { SortDirection } from '@/types/sort-direction.type';
+import type { SortDirection } from '@/types/sort-prop-dir.type';
 import type { ISortPropDir } from '@/types/sort-prop-dir.type';
 import type { TableColumn, TComparator } from '@/types/table-column.type';
 import { getterForProp } from './column-prop-getters';
@@ -8,18 +8,18 @@ import { getterForProp } from './column-prop-getters';
  */
 export function nextSortDir(sortType: SortType, current: SortDirection): SortDirection | undefined {
   if (sortType === SortType.single) {
-    if (current === SortDirection.asc) {
-      return SortDirection.desc;
+    if (current === 'asc') {
+      return 'desc';
     }
-    return SortDirection.asc;
+    return 'asc';
   }
   if (!current) {
-    return SortDirection.asc;
+    return 'asc';
   }
-  if (current === SortDirection.asc) {
-    return SortDirection.desc;
+  if (current === 'asc') {
+    return 'desc';
   }
-  if (current === SortDirection.desc) {
+  if (current === 'desc') {
     // eslint-disable-next-line no-undefined
     return undefined;
   }
@@ -100,7 +100,7 @@ export function sortRows(
   if (Array.isArray(columns)) {
     columns.forEach(col => {
       if (col.comparator && typeof col.comparator === 'function') {
-        cols[col.prop] = col.comparator;
+        cols[col.prop as string] = col.comparator;
       }
     });
   }
@@ -135,7 +135,7 @@ export function sortRows(
       // as additional parameters are silently ignored. The whole row and sort
       // direction enable more complex sort logic.
       const comparison =
-        cachedDir.dir !== SortDirection.desc
+        cachedDir.dir !== 'desc'
           ? cachedDir.compareFn(propA as string, propB as string, rowA, rowB, cachedDir.dir)
           : -cachedDir.compareFn(propA as string, propB as string, rowA, rowB, cachedDir.dir);
 
@@ -152,6 +152,6 @@ export function sortRows(
     /**
      * all else being equal, preserve original order of the rows (stable sort)
      */
-    return rowToIndexMap.get(rowA) < rowToIndexMap.get(rowB) ? -1 : 1;
+    return rowToIndexMap.get(rowA)! < rowToIndexMap.get(rowB)! ? -1 : 1;
   });
 }
