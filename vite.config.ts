@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     root: isLib ? '.' : 'demo',
+    base: isLib ? '/' : './',
     publicDir: isLib ? false : resolve(__dirname, 'public'),
     plugins: [vue()],
     resolve: {
