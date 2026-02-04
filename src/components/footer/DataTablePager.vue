@@ -8,7 +8,6 @@ interface Props {
   pagerRightArrowIcon?: string;
   pagerPreviousIcon?: string;
   pagerNextIcon?: string;
-
   page?: number; // Current page, 1-based
 }
 
@@ -28,11 +27,11 @@ const pageManager = inject('pageManager') as IPageManager;
 
 const pages = computed(() => {
   const cur = page.value;
-  const total = Math.max(totalPages.value || 0, pageManager.totalPages, cur);
   const max = 5;
+  const total = Math.max(totalPages.value || 0, pageManager.totalPages, cur);
 
   if (total <= max) {
-    return Array.from({ length: max }, (_, i) => i + 1);
+    return Array.from({ length: total }, (_, i) => i + 1);
   }
 
   let start = cur - 2;
@@ -63,7 +62,8 @@ const pages = computed(() => {
 });
 
 const canPrevious = computed(() => page.value > 1);
-const canNext = computed(() => !totalPages.value || page.value < totalPages.value);
+const canNext = computed(() => !pageManager.isLastPage(page.value));
+const canLast = computed(() => !pageManager.isLastPage(page.value) && pageManager.getLastPage());
 
 const selectPage = (p: number) => {
   if (p < 1 || (totalPages.value && p > totalPages.value) || p === page.value) return;
@@ -93,7 +93,7 @@ const selectPage = (p: number) => {
         <i :class="pagerRightArrowIcon"></i>
       </a>
     </li>
-    <li :class="{ disabled: !canNext }" v-if="totalPages">
+    <li :class="{ disabled: !canLast }" v-if="totalPages">
       <a role="button" aria-label="Last" @click.prevent="selectPage(totalPages)">
         <i :class="pagerNextIcon"></i>
       </a>

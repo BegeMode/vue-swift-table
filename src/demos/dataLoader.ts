@@ -1,5 +1,5 @@
 export type TSort = {
-  prop: string;
+  prop: string | number;
   dir: 'asc' | 'desc';
 };
 

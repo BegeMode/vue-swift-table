@@ -56,4 +56,8 @@ export class PageManager implements IPageManager {
   isLastPage(page: number): boolean {
     return !!this.pages.get(page)?.isLast;
   }
+
+  getLastPage(): number {
+    return this.lastPage || 0;
+  }
 }

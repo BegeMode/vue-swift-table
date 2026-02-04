@@ -24,6 +24,7 @@ export interface IPageManager {
   isFirstPage(page: number): boolean;
   isLastPage(page: number): boolean;
   setPageAsLast(page: number): void;
+  getLastPage(): number;
 }
 
 export interface IRowInfo {

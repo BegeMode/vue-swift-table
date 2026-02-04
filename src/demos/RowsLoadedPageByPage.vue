@@ -72,8 +72,8 @@ const onPage = (event: { page: number }) => {
 
 const onSort = (payload: ISortPropDir[]) => {
   console.log('onSort', payload);
-  sorts.value = payload as TSort[];
-  table.value?.refresh();
+  sorts.value = payload satisfies TSort[];
+  table.value?.refresh(startPage.value);
 };
 
 watch(search, () => {

@@ -282,9 +282,15 @@ const onPage = async (event: { page: number }) => {
         pageManager.setPageAsLast(event.page - 1);
         internalTotalPages.value = event.page - 1;
       }
+      rowsVersion.value++;
       return;
     }
     rowsManager.addPage(data.rows, event.page, data.isLast);
+    if (data.isLast) {
+      internalTotalPages.value = event.page;
+    } else {
+      internalTotalPages.value = event.page + 1;
+    }
   }
 
   // Apply current sort to newly added data
@@ -502,9 +508,9 @@ const reset = () => {
   internalTotalPages.value = props.totalPages;
 };
 
-const refresh = () => {
+const refresh = (page = 1) => {
   reset();
-  onPage({ page: 1 });
+  onPage({ page });
 };
 
 defineExpose({
