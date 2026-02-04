@@ -1,6 +1,27 @@
 {
   "name": "vue-swift-table",
   "version": "0.1.0",
+  "description": "A high-performance, lightweight data table for Vue 3 with virtual scrolling, sorting, and pinning.",
+  "keywords": [
+    "vue",
+    "vue3",
+    "table",
+    "datatable",
+    "virtual-scroll",
+    "performance",
+    "typescript",
+    "grid"
+  ],
+  "author": "BegeMode",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BegeMode/vue-swift-table.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BegeMode/vue-swift-table/issues"
+  },
+  "homepage": "https://github.com/BegeMode/vue-swift-table#readme",
   "type": "module",
   "main": "dist/vue-swift-table.umd.js",
   "module": "dist/vue-swift-table.es.js",
