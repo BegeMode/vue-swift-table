@@ -1,141 +1,133 @@
 ---
 name: vue-swift-table
-description: Vue 3 высокопроизводительная таблица данных с виртуализацией строк фиксированной высоты
+description: Vue 3 высокопроизводительная таблица данных с виртуализацией строк фиксированной высоты (npm-пакет и демо)
 ---
 
 # Vue Swift Table
 
 ## Обзор проекта
 
-**Vue Swift Table** — это Vue 3 компонент таблицы данных, портированный из `vue-ngx-datatable` (Vue 2). Ключевая особенность — **виртуализация строк фиксированной высоты** для эффективной работы с большими объёмами данных (10 000+ записей).
+**Vue Swift Table** — это высокопроизводительная библиотека таблиц данных для Vue 3, доступная как npm-пакет. Ключевая особенность — **виртуализация строк фиксированной высоты**, позволяющая плавно работать с наборами данных в 10 000+ строк.
+
+- **NPM-пакет:** `vue-swift-table`
+- **GitHub Repo:** [BegeMode/vue-swift-table](https://github.com/BegeMode/vue-swift-table)
+- **Demo:** [GitHub Pages](https://BegeMode.github.io/vue-swift-table/)
 
 ## Технологический стек
 
 - **Framework:** Vue 3.5.x
-- **API Style:** Composition API (`<script setup>`, `ref`, `computed`)
+- **API Style:** Composition API (`<script setup>`)
 - **Language:** TypeScript 5.x
 - **Styling:** SCSS
-- **Build Tool:** Vite 7.x
+- **Build Tool:** Vite 7.x (режим библиотеки и приложения)
 - **Testing:** Vitest
 - **Package Manager:** pnpm
 
 ## Структура проекта
 
-```
-src/
-├── components/           # Vue компоненты
-│   ├── DataTable.vue     # Корневой компонент (точка входа)
-│   ├── body/             # Компоненты тела таблицы
-│   │   ├── DataTableBody.vue      # Движок виртуализации
-│   │   ├── DataTableRow.vue       # Строка таблицы
-│   │   └── DataTableBodyCell.vue  # Ячейка тела
-│   ├── header/           # Компоненты заголовка
-│   │   └── DataTableHeader.vue    # Заголовок с сортировкой
-│   └── footer/           # Компоненты footer/pagination
-├── managers/             # Менеджеры состояния
-│   ├── rowsManager.ts    # Управление строками и видимостью
-│   └── pageManager.ts    # Управление пагинацией
-├── types/                # TypeScript типы и интерфейсы
-├── utils/                # Утилиты
-├── styles/               # SCSS стили и темы
-├── demos/                # Демонстрационные компоненты
-└── assets/               # Статические файлы (шрифты, данные)
+Проект разделен на основной код библиотеки и демонстрационное приложение:
+
+```bash
+/
+├── demo/                 # Демонстрационное приложение (отдельный корень Vite)
+│   ├── index.html        # Точка входа для демо
+│   ├── main.ts           # Запуск Vue приложения
+│   ├── App.vue           # Оболочка демо с вкладками примеров
+│   └── *.vue             # Файлы конкретных примеров (Basic, Tree, etc.)
+├── src/                  # Исходный код библиотеки
+│   ├── index.ts          # Публичный API библиотеки (экспорт компонентов и типов)
+│   ├── components/       # Vue компоненты (DataTable, Body, Header, Footer)
+│   ├── managers/         # Логика управления строками и пагинацией
+│   ├── styles/           # SCSS темы (Material, Dark, Bootstrap)
+│   ├── types/            # TS интерфейсы
+│   └── utils/            # Вспомогательные функции
+├── dist/                 # Результат сборки библиотеки (ES, UMD, CSS)
+├── dist-demo/            # Результат сборки демо-приложения
+└── public/               # Общие статические ресурсы
 ```
 
 ## Ключевые архитектурные решения
 
-### 1. Виртуализация фиксированной высоты
+### 1. Виртуализация
 
-Позиционирование строк рассчитывается по формуле:
+Рендерятся только видимые строки + буфер. Позиционирование абсолютно: `top = index * rowHeight`.
 
-- `top = index * rowHeight`
-- `totalScrollHeight = rows.length * rowHeight`
+### 2. Разделение кода (Library Mode)
 
-Рендерятся только видимые строки + буфер (~20 строк).
+Vite настроен на сборку в двух режимах:
 
-### 2. Pull-модель данных
+- **App Mode** (по умолчанию): собирает `demo/index.html` → `dist-demo/`.
+- **Library Mode** (`--mode library`): собирает `src/index.ts` → `dist/`.
 
-Таблица сама запрашивает данные через callback, переданный в props:
+### 3. Pull-модель данных
 
-- **`getPageRows(page: number)`** — callback для загрузки страницы данных
-- Возвращает `Promise<{ rows: Array<T>; isLast?: boolean; allRows?: boolean }>`
-  - `rows` — массив данных страницы
-  - `isLast` — флаг последней страницы (для infinite scroll)
-  - `allRows` — если `true`, `rows` содержит все данные сразу
-- Позволяет реализовать любую логику загрузки (API, Vuex/Pinia, WebSocket и т.д.)
+Таблица запрашивает данные через пропс `getPageRows(page: number)`.
 
-### 3. Режимы прокрутки (`infiniteScroll`)
+### 4. Режимы прокрутки (`infiniteScroll`)
 
 | Значение                | Поведение                                                                            |
 | ----------------------- | ------------------------------------------------------------------------------------ |
 | `infiniteScroll: true`  | Страницы подгружаются автоматически при скролле. Pager также работает для навигации. |
 | `infiniteScroll: false` | Новая страница загружается **только** через Pager (по клику на номер страницы).      |
 
-## Правила разработки
+## API Компонента DataTable
 
-### Стиль кода
+### Ключевые Props
 
-1. Использовать Composition API с `<script setup>`
-2. Типизировать все props, emits, переменные
-3. Использовать `computed` для производных данных
-4. Использовать `ref` для реактивного состояния
+| Prop              | Тип                                            | Описание                     |
+| ----------------- | ---------------------------------------------- | ---------------------------- |
+| `columns`         | `Array<Column>`                                | Конфигурация колонок         |
+| `rowHeight`       | `number`                                       | Фиксированная высота строки  |
+| `headerHeight`    | `number`                                       | Высота заголовка             |
+| `infiniteScroll`  | `boolean`                                      | Автоподгрузка при скролле    |
+| `getPageRows`     | `(page) => Promise<{rows, isLast?, allRows?}>` | Callback загрузки данных     |
+| `selectionType`   | `'single' \| 'multi' \| 'checkbox'`            | Тип выделения                |
+| `sortType`        | `'single' \| 'multi'`                          | Тип сортировки               |
+| `theme`           | `'material' \| 'dark' \| 'bootstrap'`          | Визуальная тема              |
+| `groupRowsBy`     | `string[]`                                     | Массив полей для группировки |
+| `summaryRow`      | `boolean`                                      | Показывать ли строку итогов  |
+| `summaryPosition` | `'top' \| 'bottom'`                            | Позиция строки итогов        |
 
-### Именование
-
-- Компоненты: `PascalCase` (DataTableBody.vue)
-- Composables: `useCamelCase` (useInfiniteScroll)
-- Types/Interfaces: `PascalCase` с префиксом `I` (IRowInfo)
-- Файлы типов: `kebab-case.type.ts`
-
-### SCSS стили
-
-- Все стили в `src/styles/`
-- Темы: Material, Dark, Bootstrap
-- Глобальные стили в `datatable.component.scss`
-
-## Ключевые Props компонента DataTable
-
-| Prop             | Тип                                            | Описание                    |
-| ---------------- | ---------------------------------------------- | --------------------------- |
-| `columns`        | `Array<Column>`                                | Конфигурация колонок        |
-| `rowHeight`      | `number`                                       | Фиксированная высота строки |
-| `headerHeight`   | `number`                                       | Высота заголовка            |
-| `infiniteScroll` | `boolean`                                      | Автоподгрузка при скролле   |
-| `getPageRows`    | `(page) => Promise<{rows, isLast?, allRows?}>` | Callback загрузки данных    |
-| `selectionType`  | `'single' \| 'multi' \| 'checkbox'`            | Тип выделения               |
-| `sortType`       | `'single' \| 'multi'`                          | Тип сортировки              |
-
-## События (Emits)
+### События (Emits)
 
 - `page` — смена страницы
 - `sort` — изменение сортировки
 - `select` — выделение строк
 - `activate` — клик по строке/ячейке
+- `reorder` — изменение порядка колонок
 
-## Команды
+## Команды разработки
 
 ```bash
-# Запуск dev-сервера
+# Разработка демо-приложения (Local Dev Server)
 pnpm dev
 
-# Сборка production
+# Сборка библиотеки для NPM (создает папку dist/)
+pnpm build:lib
+
+# Сборка демо-приложения (создает папку dist-demo/)
 pnpm build
+
+# Деплой демо на GitHub Pages
+pnpm deploy
+
+# Публикация в NPM (требует предварительной сборки build:lib)
+npm publish
 
 # Тестирование
 pnpm test
-pnpm test:run
-
-# Форматирование кода
-pnpm prettier
 ```
 
-## Ссылки на документацию
+## Правила разработки
 
-- [IMPLEMENTATION_STATUS.md](../../../IMPLEMENTATION_STATUS.md) — статус реализации
+1. **Экспорт**: Все новые компоненты или типы, которые должны быть доступны пользователю, нужно добавлять в `src/index.ts`.
+2. **Стили**: Глобальные стили библиотеки находятся в `src/styles/index.scss`.
+3. **Демо**: Любая новая фича должна быть покрыта примером в папке `demo/`. При изменении `App.vue` в демо, используйте алиас `@/` для импорта из `src/`.
+4. **Типизация**: Строгая типизация обязательна. Файлы типов именовать `*.type.ts`.
 
-## При работе с файлами
+## Работа с компонентами
 
-1. **DataTableBody.vue** — основная логика виртуализации, изменять осторожно
-2. **rowsManager.ts** — управление массивом строк и видимостью
-3. **pageManager.ts** — логика пагинации и подгрузки страниц
-4. При изменении стилей проверять все три темы (Material, Dark, Bootstrap)
+1. **DataTable.vue**: Точка входа, координирует работу менеджеров.
+2. **DataTableBody.vue**: Ядро скролла и виртуализации.
+3. **rowsManager.ts**: Отвечает за состояние строк, фильтрацию и стабильную сортировку.
+4. **pageManager.ts**: Управляет жизненным циклом страниц данных.

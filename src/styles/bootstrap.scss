@@ -40,6 +40,16 @@ bootstrap table theme
       padding: $alert-padding-y $alert-padding-x;
       margin-bottom: 0;
     }
+
+    .progress-linear {
+      .container {
+        background-color: #e9ecef;
+
+        .bar {
+          background-color: #007bff;
+        }
+      }
+    }
   }
   .datatable-footer {
     background: #424242;

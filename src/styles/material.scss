@@ -68,6 +68,10 @@ $datatable-pager-active-background: rgba(158, 158, 158, 0.2) !default;
 $datatable-summary-row-background: #ddd !default;
 $datatable-summary-row-background-hover: #ddd !default;
 
+// colors for progress bar
+$datatable-progress-background: rgb(170, 209, 249) !default;
+$datatable-progress-color: rgb(16, 108, 200) !default;
+
 .ngx-datatable.material {
   background: $ngx-datatable-background;
   box-shadow: $ngx-datatable-box-shadow;
@@ -345,39 +349,11 @@ $datatable-summary-row-background-hover: #ddd !default;
     }
 
     .progress-linear {
-      display: block;
-      position: sticky;
-      width: 100%;
-      height: 5px;
-      padding: 0;
-      margin: 0;
-      top: 0;
+      .container {
+        background-color: $datatable-progress-background;
 
-      .ngx-container {
-        display: block;
-        position: relative;
-        overflow: hidden;
-        width: 100%;
-        height: 5px;
-        -webkit-transform: translate(0, 0) scale(1, 1);
-        transform: translate(0, 0) scale(1, 1);
-        background-color: rgb(170, 209, 249);
-
-        .ngx-bar {
-          transition: all 0.2s linear;
-          -webkit-animation: query 0.8s infinite cubic-bezier(0.39, 0.575, 0.565, 1);
-          animation: query 0.8s infinite cubic-bezier(0.39, 0.575, 0.565, 1);
-
-          transition: -webkit-transform 0.2s linear;
-          transition: transform 0.2s linear;
-          background-color: rgb(16, 108, 200);
-
-          position: absolute;
-          left: 0;
-          top: 0;
-          bottom: 0;
-          width: 100%;
-          height: 5px;
+        .bar {
+          background-color: $datatable-progress-color;
         }
       }
     }
@@ -587,20 +563,5 @@ $datatable-summary-row-background-hover: #ddd !default;
       background: #fff;
       cursor: pointer;
     }
-  }
-}
-
-/**
- * Progress bar animations
- */
-@keyframes query {
-  0% {
-    opacity: 1;
-    transform: translateX(35%) scale(0.3, 1);
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateX(-50%) scale(0, 1);
   }
 }

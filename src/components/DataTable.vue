@@ -37,7 +37,6 @@ interface Props {
   headerHeight?: number;
   footerHeight?: number;
   height?: string | number;
-  loading?: boolean;
 
   // Layout & Styling
   columnMode?: 'standard' | 'flex' | 'force';
@@ -249,48 +248,60 @@ watch(
   }
 );
 
+const loading = ref<'top' | 'bottom' | 'none'>('none');
+
 const onPage = async (event: { page: number }) => {
   const pageInfo = pageManager.getPageInfo(event.page);
   if (pageInfo) {
     internalPage.value = event.page;
     return;
   }
-  const data = await props.getPageRows(event.page);
-  if (data.allRows) {
-    let totalPages = internalTotalPages.value ?? Math.ceil(data.rows.length / 30);
-    let pageSize = Math.ceil(data.rows.length / totalPages);
-    if (pageSize < visibleRowsCount.value) {
-      pageSize = visibleRowsCount.value;
-      totalPages = Math.ceil(data.rows.length / pageSize);
-    }
-    if (internalTotalPages.value) {
-      internalTotalPages.value = totalPages;
-    }
-    for (let i = 1; i <= totalPages; i++) {
-      const pageData = data.rows.slice((i - 1) * pageSize, i * pageSize);
-      if (pageData.length === 0) {
-        pageManager.setPageAsLast(i - 1);
-        break;
+  loading.value = 'top';
+  if (internalPage.value > 0 && props.infiniteScroll) {
+    loading.value = event.page < internalPage.value ? 'top' : 'bottom';
+  }
+  try {
+    const data = await props.getPageRows(event.page);
+    if (data.allRows) {
+      let totalPages = internalTotalPages.value ?? Math.ceil(data.rows.length / 30);
+      let pageSize = Math.ceil(data.rows.length / totalPages);
+      if (pageSize < visibleRowsCount.value) {
+        pageSize = visibleRowsCount.value;
+        totalPages = Math.ceil(data.rows.length / pageSize);
       }
-      rowsManager.addPage(pageData, i, i === totalPages);
-    }
-  } else {
-    if (!data.rows?.length) {
-      // no data, so previous page is the last
-      const pageInfo = pageManager.getPageInfo(event.page - 1);
-      if (pageInfo) {
-        pageManager.setPageAsLast(event.page - 1);
-        internalTotalPages.value = event.page - 1;
+      if (internalTotalPages.value) {
+        internalTotalPages.value = totalPages;
       }
-      rowsVersion.value++;
-      return;
-    }
-    rowsManager.addPage(data.rows, event.page, data.isLast);
-    if (data.isLast) {
-      internalTotalPages.value = event.page;
+      for (let i = 1; i <= totalPages; i++) {
+        const pageData = data.rows.slice((i - 1) * pageSize, i * pageSize);
+        if (pageData.length === 0) {
+          pageManager.setPageAsLast(i - 1);
+          break;
+        }
+        rowsManager.addPage(pageData, i, i === totalPages);
+      }
     } else {
-      internalTotalPages.value = event.page + 1;
+      if (!data.rows?.length) {
+        // no data, so previous page is the last
+        const pageInfo = pageManager.getPageInfo(event.page - 1);
+        if (pageInfo) {
+          pageManager.setPageAsLast(event.page - 1);
+          internalTotalPages.value = event.page - 1;
+        }
+        rowsVersion.value++;
+        return;
+      }
+      rowsManager.addPage(data.rows, event.page, data.isLast);
+      if (data.isLast) {
+        internalTotalPages.value = event.page;
+      } else {
+        internalTotalPages.value = event.page + 1;
+      }
     }
+  } catch (e) {
+    throw e;
+  } finally {
+    loading.value = 'none';
   }
 
   // Apply current sort to newly added data
@@ -541,6 +552,7 @@ defineExpose({
 
     <!-- Body Component -->
     <DataTableBody
+      :loading="loading"
       :infiniteScroll="infiniteScroll"
       :page="internalPage"
       :columns="sortedColumns"

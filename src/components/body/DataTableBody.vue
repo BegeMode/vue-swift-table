@@ -2,11 +2,12 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, inject, type Ref } from 'vue';
 import type { CSSProperties } from 'vue';
 
-import type { TableColumn } from '../../types/table-column.type';
-import type { IGroupedRows } from '../../types/grouped-rows';
+import type { TableColumn } from '@/types/table-column.type';
+import type { IGroupedRows } from '@/types/grouped-rows';
 import DataTableRow from './DataTableRow.vue';
 import DataTableGroupHeader from './DataTableGroupHeader.vue';
 import DataTableSummaryRow from './DataTableSummaryRow.vue';
+import DataTableProgress from './DataTableProgress.vue';
 import { DEFAULT_VISIBLE_ROWS, type IPageManager, type IRowInfo, type IRowsManager, type RowType } from '@/types/table';
 import type { ISortPropDir } from '@/types/sort-prop-dir.type';
 
@@ -24,6 +25,7 @@ const MAX_HEIGHT = 15_000_000; // browser limit in pixels
 type ScrollSource = 'none' | 'user' | 'programmatic';
 
 interface Props {
+  loading?: 'top' | 'bottom' | 'none';
   infiniteScroll?: boolean;
   columns: Array<TableColumn>;
   page: number;
@@ -93,7 +95,7 @@ const scrollSource = ref<ScrollSource>('none');
 let isInitialized = false;
 // Track last scroll position to determine scroll direction
 let lastScrollTop = 0;
-let scrollDirection: 'up' | 'down' = 'down';
+let scrollDirection: 'up' | 'down' = 'up';
 
 // State for scrollbars
 const scrollbarWidth = ref(0);
@@ -385,8 +387,8 @@ watch(
   }
 );
 
-watch(currentPage, () => {
-  emit('page', { page: currentPage.value });
+watch(currentPage, newVal => {
+  emit('page', { page: newVal });
 });
 
 watch(
@@ -429,6 +431,11 @@ watch(
         class="datatable-summary-top"
       />
       <div class="datatable-body-scroll-area">
+        <DataTableProgress
+          v-if="loading === 'top'"
+          class="progress-top"
+          :style="{ width: containerWidth ? `${containerWidth}px` : '100%' }"
+        />
         <div ref="scrollable" class="datatable-body-scrollable">
           <div
             class="datatable-body-scroll-content"
@@ -476,6 +483,11 @@ watch(
             </DataTableRow>
           </template>
         </div>
+        <DataTableProgress
+          v-if="loading === 'bottom'"
+          class="progress-bottom"
+          :style="{ width: containerWidth ? `${containerWidth}px` : '100%' }"
+        />
       </div>
       <DataTableSummaryRow
         v-if="summaryRow && summaryPosition === 'bottom'"
@@ -513,7 +525,9 @@ watch(
   }
 
   &-rows {
-    position: relative;
+    position: absolute;
+    top: 0;
+    left: 0;
     display: flex;
     flex-flow: column nowrap;
     contain: layout style;
@@ -551,5 +565,20 @@ watch(
 .datatable-summary-bottom {
   flex-shrink: 0;
   z-index: 10;
+}
+
+.progress-top,
+.progress-bottom {
+  position: absolute;
+  left: 0;
+  z-index: 100;
+}
+
+.progress-top {
+  top: 0;
+}
+
+.progress-bottom {
+  bottom: 0;
 }
 </style>
