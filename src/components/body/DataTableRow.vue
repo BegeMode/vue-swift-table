@@ -61,26 +61,5 @@ const onRowClick = (event: MouseEvent) => {
 </template>
 
 <style lang="scss" scoped>
-.datatable-body-row-wrapper {
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-  width: 100%;
-}
-.datatable-body-row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  box-sizing: border-box;
-  width: 100%;
-}
-.datatable-row-center {
-  display: flex;
-  flex-direction: row;
-  flex: 1;
-}
-.datatable-row-detail {
-  overflow-y: hidden;
-  box-sizing: border-box;
-}
+/* Structural styles are in datatable.component.scss */
 </style>

@@ -34,21 +34,3 @@ const style = computed(() => ({
     </div>
   </div>
 </template>
-
-<style scoped>
-.datatable-body-cell {
-  position: relative;
-  display: flex;
-  align-items: center;
-  height: 100%;
-  padding: 0 0.5rem; /* Padding horizontal only usually, or keep 0.5rem if space needed */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.datatable-body-cell-label {
-  width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-</style>
