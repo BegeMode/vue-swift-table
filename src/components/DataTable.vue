@@ -12,73 +12,14 @@ import { columnsByPin, columnsTotalWidth } from '@/utils/column';
 import type { CSSProperties } from 'vue';
 
 import type { TableColumn } from '@/types/table-column.type';
-import type { SortType } from '@/types/sort.type';
-import type { SelectionType } from '@/types/selection.type';
 import type { ISortPropDir } from '@/types/sort-prop-dir.type';
 import type { IGroupedRows } from '@/types/grouped-rows';
 import { DEFAULT_VISIBLE_ROWS, type RowType } from '@/types/table';
 import { PageManager } from '@/managers/pageManager';
 import { RowsManager } from '@/managers/rowsManager';
+import type { DataTableProps } from '@/types/props';
 
-// Props Definition based on Spec
-export interface Props {
-  getPageRows: (page: number) => Promise<{ rows: Array<RowType>; isLast?: boolean; allRows?: boolean }>;
-  /**
-   * Array of column definitions.
-   * **Important:** For column resizing to work correctly, this must be passed
-   * as a reactive `ref()`. The component directly mutates column.width during resize.
-   * @example
-   * const columns = ref<TableColumn[]>([...]);
-   * <DataTable :columns="columns" ... />
-   */
-  columns: Array<TableColumn>;
-  rowHeight?: number | string; // Fixed height, mandatory or default
-  rowDetailHeight?: number; // Height of the detail row
-  headerHeight?: number;
-  footerHeight?: number;
-  height?: string | number;
-
-  // Layout & Styling
-  columnMode?: 'standard' | 'flex' | 'force';
-  reorderable?: boolean;
-  rowClass?: (row: Record<string, unknown>, index: number) => string | Record<string, boolean>;
-  cssClasses?: Record<string, unknown>;
-  messages?: Record<string, string>;
-
-  // Paging & Scrolling
-  infiniteScroll?: boolean;
-  totalPages?: number;
-  page?: number; // page index
-  externalSorting?: boolean;
-
-  // Grouping & Tree
-  groupRowsBy?: Array<string>;
-  groupExpansionDefault?: boolean;
-  treeFromRelation?: string;
-  treeToRelation?: string;
-  lazyTree?: boolean;
-
-  // Selection
-  selectionType?: SelectionType;
-  /** Array of selected rows */
-  selected?: Array<RowType>;
-  /** Function to determine row identity for selection comparison */
-  rowIdentity?: (row: RowType) => unknown;
-  selectAllRowsOnPage?: boolean;
-
-  // Summary
-  summaryRow?: boolean;
-  summaryPosition?: 'top' | 'bottom';
-  summaryHeight?: number;
-  // Sorting
-  sortType?: SortType;
-  /** Array of active sorts */
-  sorts?: Array<ISortPropDir>;
-  // Theme
-  theme?: string;
-}
-
-const props = withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<DataTableProps>(), {
   rowHeight: 50,
   headerHeight: 50,
   footerHeight: 50,

@@ -12,6 +12,7 @@ export { default as DataTable } from './components/DataTable.vue';
 export default VueSwiftTable;
 
 // Re-export types for consumers
+export type { DataTableProps, DataTableProps as Props } from './types/props';
 export type { TableColumn } from './types/table-column.type';
 export type { SortType } from './types/sort.type';
 export type { SelectionType } from './types/selection.type';
