@@ -1,6 +1,6 @@
 {
   "name": "vue-swift-table",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A high-performance, lightweight data table for Vue 3 with virtual scrolling, sorting, and pinning.",
   "keywords": [
     "vue",
@@ -23,16 +23,18 @@
   },
   "homepage": "https://github.com/BegeMode/vue-swift-table#readme",
   "type": "module",
-  "main": "dist/vue-swift-table.umd.js",
-  "module": "dist/vue-swift-table.es.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/vue-swift-table.umd.cjs",
+  "module": "./dist/vue-swift-table.es.js",
+  "types": "./dist/index.d.ts",
+  "typings": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/vue-swift-table.es.js",
-      "require": "./dist/vue-swift-table.umd.js"
+      "require": "./dist/vue-swift-table.umd.cjs"
     },
-    "./style.css": "./dist/vue-swift-table.css"
+    "./style.css": "./dist/vue-swift-table.css",
+    "./dist/*": "./dist/*"
   },
   "files": [
     "dist"
@@ -47,7 +49,6 @@
     "test:run": "vitest run",
     "deploy": "pnpm build && gh-pages -d dist-demo"
   },
-  "dependencies": {},
   "peerDependencies": {
     "vue": "^3.0.0"
   },
@@ -60,6 +61,7 @@
     "sass": "^1.97.1",
     "typescript": "~5.9.3",
     "vite": "^7.2.4",
+    "vite-plugin-dts": "^4.5.4",
     "vitest": "^4.0.16",
     "vue": "^3.5.24",
     "vue-tsc": "^3.1.4"

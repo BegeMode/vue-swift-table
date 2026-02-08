@@ -15,7 +15,7 @@ interface Props {
   selectionType?: string;
 }
 
-const props = defineProps<Props>();
+defineProps<Props>();
 const emit = defineEmits(['activate', 'select']);
 
 const onRowClick = (event: MouseEvent) => {

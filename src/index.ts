@@ -1,5 +1,6 @@
 // Main entry point for vue-swift-table library
 import VueSwiftTable from './components/DataTable.vue';
+import './styles/index.scss';
 
 // Named export for component
 export { VueSwiftTable };
