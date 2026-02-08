@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => {
         dts({
           outDir: 'dist',
           tsconfigPath: './tsconfig.lib.json',
-          rollupTypes: false,
+          rollupTypes: true,
           insertTypesEntry: true,
           cleanVueFileName: true,
           copyDtsFiles: true,

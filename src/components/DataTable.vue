@@ -21,7 +21,7 @@ import { PageManager } from '@/managers/pageManager';
 import { RowsManager } from '@/managers/rowsManager';
 
 // Props Definition based on Spec
-interface Props {
+export interface Props {
   getPageRows: (page: number) => Promise<{ rows: Array<RowType>; isLast?: boolean; allRows?: boolean }>;
   /**
    * Array of column definitions.
