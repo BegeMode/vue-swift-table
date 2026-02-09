@@ -1,4 +1,4 @@
-import type { TableColumn } from '@/types/table-column.type';
+import type { InternalTableColumn } from '@/types/table-column.type';
 
 export interface IColumnsWidth {
   left: number;
@@ -9,20 +9,20 @@ export interface IColumnsWidth {
 
 export interface IColumnsByPinRecord {
   type: 'left' | 'center' | 'right';
-  columns: TableColumn[];
+  columns: InternalTableColumn[];
 }
 
 /**
  * Returns the columns by pin.
  */
 export interface IColumnsByPin {
-  left: TableColumn[];
-  center: TableColumn[];
-  right: TableColumn[];
+  left: InternalTableColumn[];
+  center: InternalTableColumn[];
+  right: InternalTableColumn[];
 }
 
-export function columnsByPin(cols: TableColumn[]): IColumnsByPin {
-  const ret: { left: TableColumn[]; center: TableColumn[]; right: TableColumn[] } = {
+export function columnsByPin(cols: InternalTableColumn[]): IColumnsByPin {
+  const ret: { left: InternalTableColumn[]; center: InternalTableColumn[]; right: InternalTableColumn[] } = {
     left: [],
     center: [],
     right: [],
@@ -46,7 +46,11 @@ export function columnsByPin(cols: TableColumn[]): IColumnsByPin {
 /**
  * Returns the widths of all group sets of a column
  */
-export function columnGroupWidths(groups: IColumnsByPin, all: TableColumn[], tableWidth: number): IColumnsWidth {
+export function columnGroupWidths(
+  groups: IColumnsByPin,
+  all: InternalTableColumn[],
+  tableWidth: number
+): IColumnsWidth {
   const result = {
     left: columnTotalWidth(groups.left),
     center: columnTotalWidth(groups.center),
@@ -63,7 +67,7 @@ export function columnGroupWidths(groups: IColumnsByPin, all: TableColumn[], tab
 /**
  * Calculates the total width of all columns and their groups
  */
-export function columnTotalWidth(columns: TableColumn[]): number {
+export function columnTotalWidth(columns: InternalTableColumn[]): number {
   let totalWidth = 0;
 
   if (columns) {
@@ -85,7 +89,7 @@ export function columnTotalWidth(columns: TableColumn[]): number {
 /**
  * Calculates the total width of all columns and their groups
  */
-export function columnsTotalWidth(columns: TableColumn[] /* , prop?: any */): number {
+export function columnsTotalWidth(columns: InternalTableColumn[] /* , prop?: any */): number {
   let totalWidth = 0;
 
   for (const column of columns) {
@@ -96,7 +100,7 @@ export function columnsTotalWidth(columns: TableColumn[] /* , prop?: any */): nu
 }
 
 export function columnsByPinArr(val: IColumnsByPin): Array<IColumnsByPinRecord> {
-  const colsByPinArr: Array<{ type: 'left' | 'center' | 'right'; columns: TableColumn[] }> = [];
+  const colsByPinArr: Array<{ type: 'left' | 'center' | 'right'; columns: InternalTableColumn[] }> = [];
   const colsByPin = val; // columnsByPin(val);
 
   colsByPinArr.push({ type: 'left', columns: colsByPin['left'] });

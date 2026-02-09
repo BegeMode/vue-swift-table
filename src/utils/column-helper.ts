@@ -1,5 +1,4 @@
-import type { TableColumn } from '@/types/table-column.type';
-// import { DataTableColumnDirective } from '../components/columns';
+import type { InternalTableColumn } from '@/types/table-column.type';
 import { camelCase, deCamelCase } from './camel-case';
 import { getterForProp } from './column-prop-getters';
 import { id } from './id';
@@ -7,7 +6,7 @@ import { id } from './id';
 /**
  * Sets the column defaults
  */
-export function setColumnsDefaults(columns: TableColumn[]): void {
+export function setColumnsDefaults(columns: InternalTableColumn[]): void {
   if (!columns) {
     return;
   }
@@ -34,7 +33,7 @@ export function setColumnsDefaults(columns: TableColumn[]): void {
   }
 }
 
-export function setColumnDefaults(column: TableColumn): void {
+export function setColumnDefaults(column: InternalTableColumn): void {
   if (!column || !column.prop) {
     return;
   }
@@ -90,39 +89,3 @@ export function isNullOrUndefined<T>(value: T | null | undefined): value is null
   // eslint-disable-next-line no-undefined
   return value === null || value === undefined;
 }
-
-/**
- * Translates templates definitions to objects
- */
-// export function translateTemplates(templates: DataTableColumnDirective[]): any[] {
-//   const result: any[] = [];
-
-//   for(const temp of templates) {
-//     const col: any = {};
-
-//     const props = Object.getOwnPropertyNames(temp);
-//     for(const prop of props) {
-//       col[prop] = temp[prop];
-//     }
-
-//     if(temp.headerTemplate) {
-//       col.headerTemplate = temp.headerTemplate;
-//     }
-
-//     if(temp.cellTemplate) {
-//       col.cellTemplate = temp.cellTemplate;
-//     }
-
-//     if(temp.summaryFunc) {
-//       col.summaryFunc = temp.summaryFunc;
-//     }
-
-//     if(temp.summaryTemplate) {
-//       col.summaryTemplate = temp.summaryTemplate;
-//     }
-
-//     result.push(col);
-//   }
-
-//   return result;
-// }

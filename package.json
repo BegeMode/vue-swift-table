@@ -1,6 +1,6 @@
 {
   "name": "vue-swift-table",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "A high-performance, lightweight data table for Vue 3 with virtual scrolling, sorting, and pinning.",
   "keywords": [
     "vue",

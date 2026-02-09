@@ -1,7 +1,7 @@
 import { SortType } from '@/types/sort.type';
 import type { SortDirection } from '@/types/sort-prop-dir.type';
 import type { ISortPropDir } from '@/types/sort-prop-dir.type';
-import type { TableColumn, TComparator } from '@/types/table-column.type';
+import type { InternalTableColumn, TComparator } from '@/types/table-column.type';
 import { getterForProp } from './column-prop-getters';
 /**
  * Gets the next sort direction
@@ -79,7 +79,7 @@ export function orderByComparator(a: unknown, b: unknown): number {
  */
 export function sortRows(
   rows: Record<string, unknown>[],
-  columns: TableColumn[],
+  columns: InternalTableColumn[],
   dirs: ISortPropDir[]
 ): Record<string, unknown>[] {
   if (!rows) {

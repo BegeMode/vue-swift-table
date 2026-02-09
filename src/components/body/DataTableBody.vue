@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, inject, type Ref } from 'vue';
 import type { CSSProperties } from 'vue';
 
-import type { TableColumn } from '@/types/table-column.type';
+import type { InternalTableColumn } from '@/types/table-column.type';
 import type { IGroupedRows } from '@/types/grouped-rows';
 import DataTableRow from './DataTableRow.vue';
 import DataTableGroupHeader from './DataTableGroupHeader.vue';
@@ -27,7 +27,7 @@ type ScrollSource = 'none' | 'user' | 'programmatic';
 interface Props {
   loading?: 'top' | 'bottom' | 'none';
   infiniteScroll?: boolean;
-  columns: Array<TableColumn>;
+  columns: Array<InternalTableColumn>;
   page: number;
   sorts?: ISortPropDir[];
   groupRowsBy?: string[];

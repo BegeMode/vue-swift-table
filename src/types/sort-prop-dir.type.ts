@@ -1,4 +1,4 @@
-import type { TableColumn, TableColumnProp } from '@/types/table-column.type';
+import type { InternalTableColumn, TableColumnProp } from '@/types/table-column.type';
 
 export type SortDirection = 'asc' | 'desc';
 
@@ -9,7 +9,7 @@ export interface ISortPropDir {
 
 export interface ISortEvent {
   sorts: ISortPropDir[];
-  column?: TableColumn;
+  column?: InternalTableColumn;
   prevValue?: SortDirection;
   newValue?: SortDirection;
 }

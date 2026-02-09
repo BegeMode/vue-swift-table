@@ -23,30 +23,6 @@ export type TableColumnProp = string | number;
  */
 export interface TableColumn {
   /**
-   * Internal unique id
-   *
-   * @type {string}
-   * @memberOf TableColumn
-   */
-  $$id?: string;
-
-  /**
-   * Internal for column width distributions
-   *
-   * @type {number}
-   * @memberOf TableColumn
-   */
-  $$oldWidth?: number;
-
-  /**
-   * Internal for setColumnDefaults
-   *
-   * @type {ValueGetter}
-   * @memberOf TableColumn
-   */
-  $$valueGetter?: ValueGetter;
-
-  /**
    * Determines if column is checkbox
    *
    * @type {boolean}
@@ -182,38 +158,6 @@ export interface TableColumn {
   prop?: TableColumnProp;
 
   /**
-   * Cell template ref
-   *
-   * @type {*}
-   * @memberOf TableColumn
-   */
-  cellTemplate?: (arg?: Record<string, unknown>) => VNode[];
-
-  /**
-   * Header template slot
-   *
-   * @type {*}
-   * @memberOf TableColumn
-   */
-  headerTemplate?: (arg?: Record<string, unknown>) => VNode[];
-
-  /**
-   * Header append template slot
-   *
-   * @type {*}
-   * @memberOf TableColumn
-   */
-  headerAppendTemplate?: (arg?: Record<string, unknown>) => VNode[];
-
-  /**
-   * Tree toggle template ref
-   *
-   * @type {*}
-   * @memberOf TableColumn
-   */
-  treeToggleTemplate?: boolean;
-
-  /**
    * CSS Classes for the cell
    *
    *
@@ -309,4 +253,34 @@ export interface TableColumn {
    * @memberOf TableColumn
    */
   targetMarkerContext?: { class: string };
+}
+
+/**
+ * Internal Column Type with private properties
+ * @type {object}
+ */
+export interface InternalTableColumn extends TableColumn {
+  /**
+   * Internal unique id
+   *
+   * @type {string}
+   * @memberOf InternalTableColumn
+   */
+  $$id?: string;
+
+  /**
+   * Internal for column width distributions
+   *
+   * @type {number}
+   * @memberOf InternalTableColumn
+   */
+  $$oldWidth?: number;
+
+  /**
+   * Internal for setColumnDefaults
+   *
+   * @type {ValueGetter}
+   * @memberOf InternalTableColumn
+   */
+  $$valueGetter?: ValueGetter;
 }

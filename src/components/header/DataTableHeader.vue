@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import type { TableColumn } from '@/types/table-column.type';
+import type { InternalTableColumn } from '@/types/table-column.type';
 import type { SortType } from '@/types/sort.type';
 import HeaderSlotRenderer from './HeaderSlotRenderer';
 
 interface Props {
-  columns: Array<TableColumn>;
+  columns: Array<InternalTableColumn>;
   columnStyles?: Record<string, any>; // CSSProperties
   innerWidth?: number;
   headerHeight: number;
@@ -31,13 +31,13 @@ const style = computed(() => ({
   marginRight: `${props.scrollbarWidth}px`,
 }));
 
-const onColumnClick = (column: TableColumn, event: MouseEvent) => {
+const onColumnClick = (column: InternalTableColumn, event: MouseEvent) => {
   if (column.sortable !== false) {
     emit('sort', { column, event });
   }
 };
 
-const sortDir = (column: TableColumn) => {
+const sortDir = (column: InternalTableColumn) => {
   if (!props.sorts) return undefined;
   const sort = props.sorts.find(s => {
     const prop = column.prop || column.$$id;
@@ -46,7 +46,7 @@ const sortDir = (column: TableColumn) => {
   return sort ? sort.dir : undefined;
 };
 
-const sortOrder = (column: TableColumn) => {
+const sortOrder = (column: InternalTableColumn) => {
   if (!props.sorts || props.sorts.length === 1 || props.sortType !== 'multi') {
     return undefined; // Only show for multi
   }
@@ -58,11 +58,11 @@ const sortOrder = (column: TableColumn) => {
 // ------------------------------------------------------------------
 // Resize Logic
 // ------------------------------------------------------------------
-let resizingColumn: TableColumn | null = null;
+let resizingColumn: InternalTableColumn | null = null;
 let startX = 0;
 let startWidth = 0;
 
-const onResizeStart = (column: TableColumn, event: MouseEvent) => {
+const onResizeStart = (column: InternalTableColumn, event: MouseEvent) => {
   if (!column.resizeable) return;
 
   event.preventDefault();
@@ -109,7 +109,7 @@ const onResizeEnd = () => {
 // ------------------------------------------------------------------
 const dragTarget = ref<string | null>(null);
 
-const onDragStart = (event: DragEvent, column: TableColumn) => {
+const onDragStart = (event: DragEvent, column: InternalTableColumn) => {
   if (!props.reorderable) return;
 
   // Set data to identify the dragged column
@@ -120,7 +120,7 @@ const onDragStart = (event: DragEvent, column: TableColumn) => {
   }
 };
 
-const onDragOver = (event: DragEvent, targetColumn: TableColumn) => {
+const onDragOver = (event: DragEvent, targetColumn: InternalTableColumn) => {
   if (!props.reorderable) return;
 
   // Allow drop
@@ -141,7 +141,7 @@ const onDragLeave = (_event: DragEvent) => {
   // dragTarget.value = null;
 };
 
-const onDrop = (event: DragEvent, targetColumn: TableColumn) => {
+const onDrop = (event: DragEvent, targetColumn: InternalTableColumn) => {
   if (!props.reorderable) return;
   event.preventDefault();
   dragTarget.value = null;
@@ -150,7 +150,7 @@ const onDrop = (event: DragEvent, targetColumn: TableColumn) => {
     const sourceJson = event.dataTransfer.getData('text/plain');
     if (sourceJson) {
       try {
-        const sourceColumn = JSON.parse(sourceJson) as TableColumn;
+        const sourceColumn = JSON.parse(sourceJson);
 
         // Identify source and target by prop or id
         const sourceId = sourceColumn.$$id || sourceColumn.prop;

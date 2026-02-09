@@ -1,11 +1,12 @@
 import { defineComponent, h, inject } from 'vue';
-import type { Slots } from 'vue';
+import type { PropType, Slots } from 'vue';
+import type { InternalTableColumn } from '@/types/table-column.type';
 
 export default defineComponent({
   name: 'HeaderSlotRenderer',
   props: {
     column: {
-      type: Object,
+      type: Object as PropType<InternalTableColumn>,
       required: true,
     },
   },

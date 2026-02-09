@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue';
-import type { TableColumn, TableColumnProp } from '@/types/table-column.type';
+import type { TableColumnProp, InternalTableColumn } from '@/types/table-column.type';
 import { getterForProp } from '@/utils/column-prop-getters';
 import type { IRowsManager } from '@/types/table';
 
 const props = defineProps<{
-  columns: TableColumn[];
+  columns: InternalTableColumn[];
   columnStyles?: Record<string, any>; // CSSProperties
   rowHeight: number;
 }>();

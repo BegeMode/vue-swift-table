@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { TableColumn } from '../../types/table-column.type';
+import type { InternalTableColumn } from '../../types/table-column.type';
 import CellSlotRenderer from './CellSlotRenderer';
 
 interface Props {
   row: Record<string, unknown>;
-  column: TableColumn;
+  column: InternalTableColumn;
   expanded?: boolean;
 }
 

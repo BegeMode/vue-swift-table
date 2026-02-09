@@ -11,7 +11,7 @@ import DataTableFooter from '@/components/footer/DataTableFooter.vue';
 import { columnsByPin, columnsTotalWidth } from '@/utils/column';
 import type { CSSProperties } from 'vue';
 
-import type { TableColumn } from '@/types/table-column.type';
+import type { TableColumn, InternalTableColumn } from '@/types/table-column.type';
 import type { ISortPropDir } from '@/types/sort-prop-dir.type';
 import type { IGroupedRows } from '@/types/grouped-rows';
 import { DEFAULT_VISIBLE_ROWS, type RowType } from '@/types/table';
@@ -169,7 +169,7 @@ watch(
   { immediate: true }
 );
 
-const onSort = (payload: { column: TableColumn; event?: MouseEvent }) => {
+const onSort = (payload: { column: InternalTableColumn; event?: MouseEvent }) => {
   const { column, event } = payload;
   const prop = column.prop || column.$$id;
 
@@ -430,9 +430,9 @@ provide('selection', {
   onRowSelect,
 });
 
-const onColumnReorder = ({ source, target }: { source: TableColumn; target: TableColumn }) => {
+const onColumnReorder = ({ source, target }: { source: InternalTableColumn; target: InternalTableColumn }) => {
   // Find indices
-  const columns = [...props.columns];
+  const columns = [...props.columns] as InternalTableColumn[];
   const sourceIdx = columns.findIndex(c => (c.$$id || c.prop) === (source.$$id || source.prop));
   const targetIdx = columns.findIndex(c => (c.$$id || c.prop) === (target.$$id || target.prop));
 

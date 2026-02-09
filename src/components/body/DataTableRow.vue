@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { TableColumn } from '../../types/table-column.type';
+import type { InternalTableColumn } from '../../types/table-column.type';
 import DataTableBodyCell from './DataTableBodyCell.vue'; // will create next
 
 interface Props {
   row: Record<string, unknown>;
   rowIndex: number;
-  columns: Array<TableColumn>;
+  columns: Array<InternalTableColumn>;
   columnStyles?: Record<string, any>; // CSSProperties
 
   rowDetailHeight?: number;
