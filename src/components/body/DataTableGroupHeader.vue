@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { IGroupedRows } from '../../types/grouped-rows';
+import type { IGroupedRows } from '@/types/grouped-rows';
 
 const props = defineProps<{
   group: IGroupedRows;
   expanded: boolean;
   rowHeight: number;
+  innerWidth?: number;
 }>();
 
 const emit = defineEmits(['toggle']);
@@ -25,6 +26,7 @@ const styles = computed(() => ({
   paddingLeft: props.group.level ? `${props.group.level * 10}px` : '5px',
   height: `${props.rowHeight}px`,
   lineHeight: `${props.rowHeight}px`,
+  width: props.innerWidth ? `${props.innerWidth}px` : '100%',
 }));
 </script>
 

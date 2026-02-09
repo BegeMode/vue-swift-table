@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { InternalTableColumn } from '../../types/table-column.type';
+import type { InternalTableColumn } from '@/types/table-column.type';
 import DataTableBodyCell from './DataTableBodyCell.vue'; // will create next
 
 interface Props {
@@ -13,6 +13,7 @@ interface Props {
   rowHeight: number;
   isSelected?: boolean;
   selectionType?: string;
+  innerWidth?: number;
 }
 
 defineProps<Props>();
@@ -26,7 +27,10 @@ const onRowClick = (event: MouseEvent) => {
 
 <template>
   <div class="datatable-body-row-wrapper" :class="{ active: isSelected }" @click="onRowClick">
-    <div class="datatable-body-row" :style="{ height: `${rowHeight}px` }">
+    <div
+      class="datatable-body-row"
+      :style="{ height: `${rowHeight}px`, width: innerWidth ? `${innerWidth}px` : '100%' }"
+    >
       <div class="datatable-row-center datatable-row-group">
         <div
           v-if="selectionType === 'checkbox'"

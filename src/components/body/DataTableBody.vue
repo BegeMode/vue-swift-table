@@ -68,6 +68,8 @@ const emit = defineEmits([
 // State
 const scrollable = ref<HTMLDivElement | null>(null);
 const rowsContainer = ref<HTMLDivElement | null>(null);
+const summaryTopRef = ref<HTMLDivElement | null>(null);
+const summaryBottomRef = ref<HTMLDivElement | null>(null);
 const containerHeight = ref(props.rowHeight * DEFAULT_VISIBLE_ROWS);
 const containerWidth = ref(0);
 const visibleRowsCount = computed(() => {
@@ -209,6 +211,14 @@ const handleScroll = () => {
   scrollLeft.value = scrollable.value.scrollLeft;
   if (rowsContainer.value) {
     rowsContainer.value.scrollLeft = scrollLeft.value;
+  }
+
+  // Also sync summary rows
+  if (summaryTopRef.value) {
+    summaryTopRef.value.scrollLeft = scrollLeft.value;
+  }
+  if (summaryBottomRef.value) {
+    summaryBottomRef.value.scrollLeft = scrollLeft.value;
   }
 
   emit('scroll', { target: scrollable.value });
@@ -425,9 +435,11 @@ watch(
     <div class="datatable-body-table">
       <DataTableSummaryRow
         v-if="summaryRow && summaryPosition === 'top'"
+        ref="summaryTopRef"
         :columns="columns"
         :columnStyles="columnStyles"
         :rowHeight="summaryHeight"
+        :innerWidth="innerWidth"
         class="datatable-summary-top"
       />
       <div class="datatable-body-scroll-area">
@@ -461,6 +473,7 @@ watch(
               :group="item.data as IGroupedRows"
               :expanded="(item.data as IGroupedRows).expanded"
               :rowHeight="rowHeight"
+              :innerWidth="innerWidth"
               @toggle="emit('group-toggle', $event)"
             />
             <DataTableRow
@@ -474,6 +487,7 @@ watch(
               :expanded="isRowExpanded(item)"
               :isSelected="selected?.includes(item.data)"
               :selectionType="selectionType"
+              :innerWidth="innerWidth"
               @select="emit('row-select', { row: item.data, event: $event })"
               @activate="emit('activate', { row: item.data, event: $event })"
             >
@@ -491,9 +505,11 @@ watch(
       </div>
       <DataTableSummaryRow
         v-if="summaryRow && summaryPosition === 'bottom'"
+        ref="summaryBottomRef"
         :columns="columns"
         :columnStyles="columnStyles"
         :rowHeight="summaryHeight"
+        :innerWidth="innerWidth"
         class="datatable-summary-bottom"
       />
     </div>

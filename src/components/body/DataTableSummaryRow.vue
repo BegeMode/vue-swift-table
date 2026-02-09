@@ -8,6 +8,7 @@ const props = defineProps<{
   columns: InternalTableColumn[];
   columnStyles?: Record<string, any>; // CSSProperties
   rowHeight: number;
+  innerWidth?: number;
 }>();
 
 const summaryData = computed(() => {
@@ -48,7 +49,7 @@ function defaultSumFunc(cells: any[]): any {
 
 const styles = computed(() => ({
   height: `${props.rowHeight}px`,
-  width: '100%', // Should match table width
+  width: props.innerWidth ? `${props.innerWidth}px` : '100%',
 }));
 </script>
 
