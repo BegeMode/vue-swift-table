@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { IPageManager } from '@/types/table';
-import { computed, inject, toRefs } from 'vue';
+import { computed, inject, toRefs, type Ref } from 'vue';
 
 interface Props {
   totalPages?: number;
@@ -20,6 +20,8 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits(['change']);
+
+const rowsVersion = inject<Ref<number>>('rowsVersion')!;
 
 const { page, totalPages } = toRefs(props);
 
@@ -62,8 +64,16 @@ const pages = computed(() => {
 });
 
 const canPrevious = computed(() => page.value > 1);
-const canNext = computed(() => !pageManager.isLastPage(page.value));
-const canLast = computed(() => !pageManager.isLastPage(page.value) && pageManager.getLastPage());
+const canNext = computed(() => {
+  // Depend on rowsVersion to trigger recalculation when rows data changes
+  rowsVersion.value;
+  return !pageManager.isLastPage(page.value);
+});
+const canLast = computed(() => {
+  // Depend on rowsVersion to trigger recalculation when rows data changes
+  rowsVersion.value;
+  return !pageManager.isLastPage(page.value) && pageManager.getLastPage();
+});
 
 const selectPage = (p: number) => {
   if (p < 1 || (totalPages.value && p > totalPages.value) || p === page.value) return;

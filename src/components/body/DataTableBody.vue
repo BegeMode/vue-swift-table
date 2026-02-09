@@ -306,7 +306,6 @@ const isRowExpanded = (row: IRowInfo) => {
 
 const allRowsHeight = computed(() => {
   // Depend on rowsVersion to trigger recalculation when rows data changes
-  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
   rowsVersion.value;
   // Pass page for paged mode, undefined for infinite scroll
   const pageArg = props.infiniteScroll ? undefined : props.page;
