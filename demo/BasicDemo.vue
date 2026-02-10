@@ -73,11 +73,11 @@ watch(search, () => {
   table.value?.refresh();
 });
 
-const onSort = (event: Array<{ prop: string; dir: 'asc' | 'desc' }>) => {
+const onSort = (event: Array<{ prop: string | number; dir: 'asc' | 'desc' }>) => {
   console.log('Sort Event:', event);
 };
 
-const onScroll = (_e: Event) => {
+const onScroll = (_e: { target: HTMLElement | null }) => {
   // console.log('Scroll:', (e.target as HTMLElement).scrollTop);
 };
 

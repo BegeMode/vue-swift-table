@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import type { InternalTableColumn } from '@/types/table-column.type';
 import type { SortType } from '@/types/sort.type';
+import type { ISortPropDir } from '@/types/sort-prop-dir.type';
 import HeaderSlotRenderer from './HeaderSlotRenderer';
 
 interface Props {
@@ -10,7 +11,7 @@ interface Props {
   innerWidth?: number;
   headerHeight: number;
   sortType?: SortType | string;
-  sorts?: Array<any>;
+  sorts?: Array<ISortPropDir>;
   selectionType?: string;
   allRowsSelected?: boolean;
   reorderable?: boolean;
@@ -24,7 +25,11 @@ const props = withDefaults(defineProps<Props>(), {
   scrollbarWidth: 0,
 });
 
-const emit = defineEmits(['sort', 'select-all', 'column-reorder']);
+const emit = defineEmits<{
+  sort: [event: { column: InternalTableColumn; event: MouseEvent }];
+  'select-all': [];
+  'column-reorder': [event: { source: InternalTableColumn; target: InternalTableColumn }];
+}>();
 
 const style = computed(() => ({
   height: `${props.headerHeight}px`,

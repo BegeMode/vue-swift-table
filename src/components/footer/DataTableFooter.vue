@@ -25,7 +25,9 @@ const props = withDefaults(defineProps<Props>(), {
   selectedCount: 0,
 });
 
-const emit = defineEmits(['page']);
+const emit = defineEmits<{
+  page: [event: { page: number }];
+}>();
 
 const currentPage = computed(() => props.page);
 

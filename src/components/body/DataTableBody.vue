@@ -54,16 +54,16 @@ const props = withDefaults(defineProps<Props>(), {
   rowDetailHeight: 0,
 });
 
-const emit = defineEmits([
-  'scroll',
-  'update:scrollTop',
-  'row-select',
-  'activate',
-  'group-toggle',
-  'scrollbar-width',
-  'page',
-  'visible-rows-count',
-]);
+const emit = defineEmits<{
+  scroll: [event: { target: HTMLElement | null }];
+  'update:scrollTop': [value: number];
+  'row-select': [event: { row: RowType; event: MouseEvent }];
+  activate: [event: { row: RowType; event: MouseEvent }];
+  'group-toggle': [event: IGroupedRows];
+  'scrollbar-width': [width: number];
+  page: [event: { page: number }];
+  'visible-rows-count': [count: number];
+}>();
 
 // State
 const scrollable = ref<HTMLDivElement | null>(null);

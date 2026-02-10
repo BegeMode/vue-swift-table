@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.6] - 2026-02-10
+
+### Improved
+
+- Added strict typing for all component events (emits) across `DataTable`, `DataTableBody`, `DataTableHeader`, `DataTableFooter`, and `DataTablePager`.
+- Library consumers now have full TypeScript support for event parameters (`sort`, `select`, `page`, `activate`, etc.) instead of `any`.
+
 ## [0.2.5] - 2026-02-09
 
 ### Added

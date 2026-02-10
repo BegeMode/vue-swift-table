@@ -111,19 +111,19 @@ const props = withDefaults(defineProps<DataTableProps>(), {
   }),
 });
 
-const emit = defineEmits([
-  'update:sorts',
-  'sort',
-  'page',
-  'select',
-  'activate',
-  'tree-action',
-  'group-toggle',
-  'update:selected',
-  'scroll',
-  'reorder',
-  'detail-toggle',
-]);
+const emit = defineEmits<{
+  'update:sorts': [sorts: ISortPropDir[]];
+  sort: [sorts: ISortPropDir[]];
+  page: [event: { page: number }];
+  select: [event: { selected: Array<RowType | IGroupedRows> }];
+  activate: [event: { type: string; row: RowType; event?: MouseEvent }];
+  'tree-action': [event: any];
+  'group-toggle': [event: IGroupedRows];
+  'update:selected': [selected: Array<RowType | IGroupedRows>];
+  scroll: [event: { target: HTMLElement | null }];
+  reorder: [columns: TableColumn[]];
+  'detail-toggle': [event: { rows: Set<RowType>; value: RowType }];
+}>();
 
 const pageManager = new PageManager();
 const rowsManager = new RowsManager(pageManager);
@@ -506,7 +506,7 @@ const columnStyles = computed(() => {
 const offsetX = ref(0);
 const scrollbarWidth = ref(0);
 
-const onScroll = (e: Event) => {
+const onScroll = (e: { target: HTMLElement | null }) => {
   const target = e.target as HTMLElement;
   offsetX.value = target.scrollLeft;
   emit('scroll', e);

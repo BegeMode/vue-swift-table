@@ -19,7 +19,9 @@ const props = withDefaults(defineProps<Props>(), {
   pagerNextIcon: 'datatable-icon-skip',
 });
 
-const emit = defineEmits(['change']);
+const emit = defineEmits<{
+  change: [event: { page: number }];
+}>();
 
 const rowsVersion = inject<Ref<number>>('rowsVersion')!;
 
